@@ -29,8 +29,6 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run scraper
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python -m scraper.run
 
       - name: Commit results
