@@ -1,0 +1,250 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f5f4f1;
+  --card-bg: #ffffff;
+  --text: #1c1b19;
+  --muted: #6b6862;
+  --border: #e3e0d9;
+  --accent: #2f6d4f;
+  --guenstig: #2f6d4f;
+  --im_rahmen: #8a6d1d;
+  --teuer: #a13c3c;
+  --unknown: #8a8680;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171614;
+    --card-bg: #221f1c;
+    --text: #efece6;
+    --muted: #a39d92;
+    --border: #38352f;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.topbar {
+  padding: 24px 20px 8px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.topbar h1 {
+  margin: 0 0 4px;
+  font-size: 1.6rem;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+}
+
+.meta {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.controls {
+  max-width: 1100px;
+  margin: 16px auto;
+  padding: 0 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.controls input[type="text"] {
+  flex: 1;
+  min-width: 220px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text);
+}
+
+.controls select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.controls-range {
+  margin-top: -6px;
+}
+
+.range-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.range-label {
+  font-size: 0.82rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.range-sep {
+  color: var(--muted);
+}
+
+.range-group input[type="number"] {
+  width: 90px;
+  padding: 4px 4px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+}
+
+.range-group input[type="number"]:focus {
+  outline: none;
+}
+
+#filterOrt {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text);
+  min-width: 180px;
+}
+
+#resetFilters {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+#resetFilters:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+#cards {
+  max-width: 1100px;
+  margin: 0 auto 60px;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card.gone {
+  opacity: 0.5;
+}
+
+.card-title {
+  font-weight: 600;
+  font-size: 1.02rem;
+  text-decoration: none;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.card-title:hover {
+  color: var(--accent);
+}
+
+.card-loc {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.card-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 0.92rem;
+}
+
+.card-numbers span b {
+  font-weight: 600;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: white;
+}
+
+.badge.guenstig { background: var(--guenstig); }
+.badge.im_rahmen { background: var(--im_rahmen); }
+.badge.teuer { background: var(--teuer); }
+.badge.zu_wenig_vergleichsdaten,
+.badge.keine_daten { background: var(--unknown); }
+.badge.outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.card-desc {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  max-height: 4.2em;
+  overflow: hidden;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: auto;
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  margin-top: 60px;
+}

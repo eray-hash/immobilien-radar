@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Immobilien-Radar — Mehrfamilienhäuser</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>Immobilien-Radar</h1>
+  <p class="subtitle">Private Mehrfamilienhaus-/Zinshaus-Inserate von Kleinanzeigen — automatisch aktualisiert</p>
+  <p class="meta" id="meta"></p>
+</header>
+
+<section class="controls">
+  <input type="text" id="search" placeholder="Suche in Titel, Ort, Beschreibung…">
+  <select id="sortField">
+    <option value="preis_pro_m2_asc">€/m² aufsteigend</option>
+    <option value="preis_pro_m2_desc">€/m² absteigend</option>
+    <option value="preis_asc">Preis aufsteigend</option>
+    <option value="preis_desc">Preis absteigend</option>
+    <option value="neu">Zuletzt gesehen</option>
+  </select>
+  <select id="filterEinschaetzung">
+    <option value="">Alle Einschätzungen</option>
+    <option value="guenstig">Günstig</option>
+    <option value="im_rahmen">Im Rahmen</option>
+    <option value="teuer">Teuer</option>
+    <option value="zu_wenig_vergleichsdaten">Zu wenig Vergleichsdaten</option>
+  </select>
+  <select id="filterBundesland">
+    <option value="">Alle Bundesländer</option>
+  </select>
+  <label class="checkbox"><input type="checkbox" id="hideGone"> Entfernte Inserate ausblenden</label>
+</section>
+
+<section class="controls controls-range">
+  <div class="range-group">
+    <span class="range-label">Preis</span>
+    <input type="number" id="preisMin" placeholder="von €" min="0">
+    <span class="range-sep">–</span>
+    <input type="number" id="preisMax" placeholder="bis €" min="0">
+  </div>
+  <div class="range-group">
+    <span class="range-label">Wohnfläche</span>
+    <input type="number" id="flaecheMin" placeholder="von m²" min="0">
+    <span class="range-sep">–</span>
+    <input type="number" id="flaecheMax" placeholder="bis m²" min="0">
+  </div>
+  <input type="text" id="filterOrt" placeholder="Standort: PLZ oder Ort…">
+  <button type="button" id="resetFilters">Filter zurücksetzen</button>
+</section>
+
+<main id="cards"></main>
+<p id="empty" class="empty" hidden>Keine Treffer gefunden.</p>
+
+<script src="app.js"></script>
+</body>
+</html>
