@@ -1,0 +1,40 @@
+name: Scrape Kleinanzeigen
+
+on:
+  schedule:
+    # jeweils in UTC: 06:30, 12:30, 18:30 (entspricht ca. 07:30/08:30, 13:30/14:30, 19:30/20:30 in Deutschland)
+    - cron: "30 6 * * *"
+    - cron: "30 12 * * *"
+    - cron: "30 18 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scrape-kleinanzeigen
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scraper
+        run: python -m scraper.run
+
+      - name: Commit results
+        run: |
+          git config user.name "kleinanzeigen-scraper-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/data/listings.json
+          git diff --cached --quiet && echo "Keine √Ñnderungen" || git commit -m "Aktualisiere Immobilien-Treffer"
+          git push
