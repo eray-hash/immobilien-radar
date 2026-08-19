@@ -36,5 +36,5 @@ jobs:
           git config user.name "kleinanzeigen-scraper-bot"
           git config user.email "actions@users.noreply.github.com"
           git add docs/data/listings.json
-          git diff --cached --quiet && echo "Keine √Ñnderungen" || git commit -m "Aktualisiere Immobilien-Treffer"
+          git diff --cached --quiet && echo "No changes" || git commit -m "Update Immobilien-Treffer"
           git push
