@@ -29,7 +29,13 @@ def get(url: str) -> str | None:
     # (_abck), das danach leere Trefferlisten liefert (HTTP 200, aber ohne echte
     # Inhalte) - jeder Request startet daher bewusst ohne mitgeschleppte Cookies.
     _session.cookies.clear()
-    resp = _session.get(url, timeout=20)
+    try:
+        resp = _session.get(url, timeout=20)
+    except requests.exceptions.RequestException as e:
+        # Netzwerkfehler (Timeout, Verbindungsabbruch, ...) sollen den gesamten
+        # Lauf nicht abschießen - einzelne Seite überspringen und weitermachen.
+        print(f"[netzwerkfehler] {url}: {e}")
+        return None
     if resp.status_code != 200:
         print(f"[http {resp.status_code}] {url}")
         return None
