@@ -11,7 +11,7 @@
   <div class="topbar-row">
     <div>
       <h1>Immobilien-Radar</h1>
-      <p class="subtitle">Mehrfamilienhaus-/Zinshaus-Inserate von Kleinanzeigen — automatisch aktualisiert</p>
+      <p class="subtitle">Immobilien-Inserate von Kleinanzeigen — automatisch aktualisiert</p>
     </div>
     <a class="rescan-button" href="https://github.com/eray-hash/immobilien-radar/actions/workflows/scrape.yml" target="_blank" rel="noopener">
       ↻ Neuen Scan starten
@@ -37,6 +37,9 @@
     <option value="teuer">Teuer</option>
     <option value="zu_wenig_vergleichsdaten">Zu wenig Vergleichsdaten</option>
   </select>
+  <select id="filterObjektTyp">
+    <option value="">Alle Objekttypen</option>
+  </select>
   <select id="filterBundesland">
     <option value="">Alle Bundesländer</option>
   </select>
@@ -56,7 +59,7 @@
     <input type="number" id="preisMax" placeholder="bis €" min="0">
   </div>
   <div class="range-group">
-    <span class="range-label">Wohnfläche</span>
+    <span class="range-label">Fläche</span>
     <input type="number" id="flaecheMin" placeholder="von m²" min="0">
     <span class="range-sep">–</span>
     <input type="number" id="flaecheMax" placeholder="bis m²" min="0">

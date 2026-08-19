@@ -34,6 +34,7 @@ async function load() {
   document.getElementById("meta").textContent =
     `${data.anzahl} Inserate · zuletzt aktualisiert ${formatDate(data.aktualisiert_am)}`;
   populateBundeslandFilter();
+  populateObjektTypFilter();
   render();
 }
 
@@ -46,6 +47,24 @@ function populateBundeslandFilter() {
     opt.textContent = v;
     select.appendChild(opt);
   }
+}
+
+function populateObjektTypFilter() {
+  const select = document.getElementById("filterObjektTyp");
+  const seen = new Map();
+  for (const l of allListings) {
+    if (l.objekt_typ) seen.set(l.objekt_typ, l.objekt_typ_label || l.objekt_typ);
+  }
+  for (const [value, label] of [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1], "de"))) {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    select.appendChild(opt);
+  }
+}
+
+function bestFlaeche(l) {
+  return l.wohnflaeche_m2 || l.flaeche_m2_sonstige || l.grundstuecksflaeche_m2 || null;
 }
 
 function formatDate(iso) {
@@ -107,6 +126,7 @@ function render() {
   const sortMode = document.getElementById("sortField").value;
   const einschaetzungFilter = document.getElementById("filterEinschaetzung").value;
   const bundeslandFilter = document.getElementById("filterBundesland").value;
+  const objektTypFilter = document.getElementById("filterObjektTyp").value;
   const anbieterFilter = document.getElementById("filterAnbieter").value;
   const ortQuery = document.getElementById("filterOrt").value.trim();
   const hideGone = document.getElementById("hideGone").checked;
@@ -123,6 +143,9 @@ function render() {
   if (bundeslandFilter) {
     listings = listings.filter((l) => l.bundesland === bundeslandFilter);
   }
+  if (objektTypFilter) {
+    listings = listings.filter((l) => l.objekt_typ === objektTypFilter);
+  }
   if (anbieterFilter) {
     listings = listings.filter((l) => l.anbieter_typ === anbieterFilter);
   }
@@ -133,7 +156,7 @@ function render() {
     listings = listings.filter((l) => inRange(l.preis_eur, preisMin, preisMax));
   }
   if (flaecheMin !== null || flaecheMax !== null) {
-    listings = listings.filter((l) => inRange(l.wohnflaeche_m2, flaecheMin, flaecheMax));
+    listings = listings.filter((l) => inRange(bestFlaeche(l), flaecheMin, flaecheMax));
   }
   if (hideGone) {
     listings = listings.filter((l) => l.status !== "nicht_mehr_in_trefferliste");
@@ -173,11 +196,12 @@ function renderCard(l) {
     <div class="card-loc">${escapeHtml(l.plz || "")} ${escapeHtml(l.ort || "")}${l.bundesland ? " · " + escapeHtml(l.bundesland) : ""}</div>
     <div class="card-numbers">
       <span><b>${formatEur(l.preis_eur)}</b></span>
-      <span>${l.wohnflaeche_m2 ? l.wohnflaeche_m2 + " m²" : "m² unbekannt"}</span>
+      <span>${bestFlaeche(l) ? bestFlaeche(l) + " m²" : "m² unbekannt"}</span>
       <span>${l.preis_pro_m2 ? formatEur(l.preis_pro_m2) + "/m²" : ""}</span>
       <span>${l.baujahr ? "Baujahr " + l.baujahr : "Baujahr unbekannt"}</span>
     </div>
     <div class="badges">
+      <span class="badge outline objekt-typ">${escapeHtml(l.objekt_typ_label || l.objekt_typ || "Objekttyp unbekannt")}</span>
       <span class="badge anbieter-${l.anbieter_typ || ""}">${ANBIETER_LABELS[l.anbieter_typ] || "Anbieter unbekannt"}</span>
       <span class="badge ${einschaetzung.label || ""}" title="${escapeHtml(abweichung)}">${einschaetzungLabel}</span>
       <span class="badge outline">${RENO_LABELS[l.sanierungsstand] || l.sanierungsstand}</span>
@@ -201,7 +225,14 @@ function escapeHtml(str) {
 }
 
 const liveInputs = ["search", "preisMin", "preisMax", "flaecheMin", "flaecheMax", "filterOrt"];
-const changeInputs = ["sortField", "filterEinschaetzung", "filterBundesland", "filterAnbieter", "hideGone"];
+const changeInputs = [
+  "sortField",
+  "filterEinschaetzung",
+  "filterBundesland",
+  "filterObjektTyp",
+  "filterAnbieter",
+  "hideGone",
+];
 liveInputs.forEach((id) => document.getElementById(id).addEventListener("input", render));
 changeInputs.forEach((id) => document.getElementById(id).addEventListener("change", render));
 
@@ -209,6 +240,7 @@ document.getElementById("resetFilters").addEventListener("click", () => {
   liveInputs.forEach((id) => (document.getElementById(id).value = ""));
   document.getElementById("filterEinschaetzung").value = "";
   document.getElementById("filterBundesland").value = "";
+  document.getElementById("filterObjektTyp").value = "";
   document.getElementById("filterAnbieter").value = "";
   document.getElementById("hideGone").checked = false;
   render();

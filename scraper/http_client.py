@@ -25,6 +25,10 @@ def get(url: str) -> str | None:
         print(f"[robots.txt] blockiert, überspringe: {url}")
         return None
     time.sleep(random.uniform(*config.REQUEST_DELAY_SECONDS))
+    # kleinanzeigen.de setzt nach dem ersten Request ein Akamai-Bot-Tracking-Cookie
+    # (_abck), das danach leere Trefferlisten liefert (HTTP 200, aber ohne echte
+    # Inhalte) - jeder Request startet daher bewusst ohne mitgeschleppte Cookies.
+    _session.cookies.clear()
     resp = _session.get(url, timeout=20)
     if resp.status_code != 200:
         print(f"[http {resp.status_code}] {url}")

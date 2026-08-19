@@ -12,12 +12,42 @@ _M2_RE = re.compile(r"([\d.,]+)\s*m²")
 _PLZ_ORT_RE = re.compile(r"(\d{5})\s+(.+)")
 _YEAR_RE = re.compile(r"\b(1[89]\d{2}|20\d{2})\b")
 
+# Längere/zusammengesetzte Namen zuerst, damit z.B. "Sachsen-Anhalt" nicht als
+# Teiltreffer von "Sachsen" verloren geht.
+_BUNDESLAENDER = [
+    "Baden-Württemberg",
+    "Mecklenburg-Vorpommern",
+    "Nordrhein-Westfalen",
+    "Rheinland-Pfalz",
+    "Sachsen-Anhalt",
+    "Schleswig-Holstein",
+    "Bayern",
+    "Berlin",
+    "Brandenburg",
+    "Bremen",
+    "Hamburg",
+    "Hessen",
+    "Niedersachsen",
+    "Saarland",
+    "Sachsen",
+    "Thüringen",
+]
 
-def _search_url(keyword: str, page: int) -> str:
-    slug = keyword.replace(" ", "-")
+
+def _page_url(path: str, page: int) -> str:
+    # kleinanzeigen nutzt zwei URL-Formen, per Browser für jede Suche verifiziert:
+    # - "k0c..."/"c..." ohne "+": seite: kommt direkt nach dem ersten Segment
+    #   (z.B. s-haus-kaufen/seite:2/mehrfamilienhaus/k0c208)
+    # - "c...+filter...": seite: kommt direkt vor dem letzten (Filter-)Segment
+    #   (z.B. s-gewerbeimmobilien/kaufen/seite:2/c277+gewerbeimmobilien.art_s:kaufen)
     if page <= 1:
-        return f"{config.BASE_URL}/s-haus-kaufen/{slug}/k0c{config.CATEGORY_ID}"
-    return f"{config.BASE_URL}/s-haus-kaufen/seite:{page}/{slug}/k0c{config.CATEGORY_ID}"
+        return f"{config.BASE_URL}/{path}"
+    segments = path.split("/")
+    if "+" in segments[-1]:
+        segments = segments[:-1] + [f"seite:{page}", segments[-1]]
+    else:
+        segments = [segments[0], f"seite:{page}", *segments[1:]]
+    return f"{config.BASE_URL}/" + "/".join(segments)
 
 
 def _parse_price(text: str) -> float | None:
@@ -92,26 +122,39 @@ def parse_detail(html: str) -> dict:
         label = li.get_text(" ", strip=True).replace(value_el.get_text(strip=True), "").strip()
         value = value_el.get_text(strip=True)
         key = label.lower()
+        value_m2 = _parse_m2(value + " m²") if "m²" not in value else _parse_m2(value)
         if "wohnfläche" in key:
-            detail["wohnflaeche_m2"] = _parse_m2(value + " m²") if "m²" not in value else _parse_m2(value)
+            detail["wohnflaeche_m2"] = value_m2
+        elif "grundstücksfläche" in key:
+            detail["grundstuecksflaeche_m2"] = value_m2
+        elif "fläche" in key:
+            # generische Fläche (Gewerbeimmobilien: "Fläche", ohne "Wohn-"/"Grundstücks-"-Präfix)
+            detail["flaeche_m2_sonstige"] = value_m2
         elif "baujahr" in key:
             m = _YEAR_RE.search(value)
             detail["baujahr"] = int(m.group(1)) if m else None
         elif "etagen" in key:
             detail["etagen"] = value
-        elif "grundstücksfläche" in key:
-            detail["grundstuecksflaeche_m2"] = _parse_m2(value + " m²") if "m²" not in value else _parse_m2(value)
         elif "zimmer" in key:
             detail["zimmer"] = value
+        elif key == "objektart":
+            detail["objektart_detail"] = value
 
     locality_el = soup.select_one("#viewad-locality")
     if locality_el:
         text = locality_el.get_text(strip=True)
-        m = re.match(r"(\d{5})\s+(.+?)\s*-\s*(.+)", text)
+        m = re.match(r"(\d{5})\s+(.+)", text)
         if m:
             detail["plz"] = m.group(1)
-            detail["bundesland"] = m.group(2)
-            detail["ort"] = m.group(3)
+            rest = m.group(2)
+            # Bundesland per Whitelist statt Positions-Raten: kleinanzeigen zeigt hier
+            # je nach Objekt/Region mal Bundesland, mal Kreis an ("25335 Kreis Pinneberg -
+            # Elmshorn") - und ein naives Split am ersten "-" schneidet Namen mit
+            # eigenem Bindestrich (Baden-Württemberg, Nordrhein-Westfalen, ...) falsch ab.
+            bundesland = next((b for b in _BUNDESLAENDER if b in rest), None)
+            detail["bundesland"] = bundesland
+            ort = rest.replace(bundesland, "", 1) if bundesland else rest
+            detail["ort"] = ort.strip(" -") or None
 
     price_el = soup.select_one("#viewad-price")
     if price_el:
@@ -145,10 +188,10 @@ def _fetch_page_with_retry(url: str, retries: int = 2) -> list[dict]:
     return []
 
 
-def fetch_search_results(keyword: str) -> list[dict]:
+def fetch_search_results(path: str) -> list[dict]:
     all_results = []
     for page in range(1, config.MAX_PAGES_PER_SEARCH + 1):
-        page_results = _fetch_page_with_retry(_search_url(keyword, page))
+        page_results = _fetch_page_with_retry(_page_url(path, page))
         if not page_results:
             break
         all_results.extend(page_results)

@@ -23,24 +23,37 @@ def _region_key(listing: dict) -> str | None:
     return None
 
 
-def attach_price_assessments(listings: list[dict]) -> None:
-    priced = [
-        l
-        for l in listings
-        if l.get("preis_eur") and l.get("wohnflaeche_m2") and l["wohnflaeche_m2"] > 0
-    ]
-    for l in priced:
-        l["preis_pro_m2"] = round(l["preis_eur"] / l["wohnflaeche_m2"], 2)
+def _best_flaeche(listing: dict) -> float | None:
+    # Wohnfläche ist die aussagekräftigste Bezugsgröße für Häuser/Wohnungen;
+    # bei Gewerbe/Grundstücken/Garagen gibt es keine Wohnfläche, dort auf die
+    # generische bzw. Grundstücksfläche ausweichen.
+    for key in ("wohnflaeche_m2", "flaeche_m2_sonstige", "grundstuecksflaeche_m2"):
+        value = listing.get(key)
+        if value:
+            return value
+    return None
 
-    by_region: dict[str, list[float]] = {}
-    by_bundesland: dict[str, list[float]] = {}
+
+def attach_price_assessments(listings: list[dict]) -> None:
+    priced = []
+    for l in listings:
+        flaeche = _best_flaeche(l)
+        if l.get("preis_eur") and flaeche and flaeche > 0:
+            l["preis_pro_m2"] = round(l["preis_eur"] / flaeche, 2)
+            priced.append(l)
+
+    # Preis/m² nur innerhalb desselben Objekttyps vergleichen - ein Mehrfamilienhaus
+    # und ein Garagen-Stellplatz haben völlig unterschiedliche m²-Preisniveaus.
+    by_region: dict[tuple[str, str], list[float]] = {}
+    by_bundesland: dict[tuple[str, str], list[float]] = {}
     for l in priced:
+        objekt_typ = l.get("objekt_typ", "unbekannt")
         region = _region_key(l)
         if region:
-            by_region.setdefault(region, []).append(l["preis_pro_m2"])
+            by_region.setdefault((objekt_typ, region), []).append(l["preis_pro_m2"])
         bl = l.get("bundesland")
         if bl:
-            by_bundesland.setdefault(bl, []).append(l["preis_pro_m2"])
+            by_bundesland.setdefault((objekt_typ, bl), []).append(l["preis_pro_m2"])
 
     MIN_SAMPLE = 3
 
@@ -48,25 +61,26 @@ def attach_price_assessments(listings: list[dict]) -> None:
         if l.get("preis_pro_m2") is None:
             l["preis_einschaetzung"] = {
                 "label": "keine_daten",
-                "hinweis": "Preis oder Wohnfläche fehlt im Inserat",
+                "hinweis": "Preis oder Fläche fehlt im Inserat",
             }
             continue
 
+        objekt_typ = l.get("objekt_typ", "unbekannt")
         region = _region_key(l)
-        region_values = by_region.get(region, []) if region else []
+        region_values = by_region.get((objekt_typ, region), []) if region else []
         bl = l.get("bundesland")
-        bl_values = by_bundesland.get(bl, []) if bl else []
+        bl_values = by_bundesland.get((objekt_typ, bl), []) if bl else []
 
         if len(region_values) >= MIN_SAMPLE:
-            basis = f"PLZ-Region {region} (n={len(region_values)})"
+            basis = f"PLZ-Region {region}, gleicher Objekttyp (n={len(region_values)})"
             median = statistics.median(region_values)
         elif len(bl_values) >= MIN_SAMPLE:
-            basis = f"{bl} (n={len(bl_values)})"
+            basis = f"{bl}, gleicher Objekttyp (n={len(bl_values)})"
             median = statistics.median(bl_values)
         else:
             l["preis_einschaetzung"] = {
                 "label": "zu_wenig_vergleichsdaten",
-                "hinweis": "Noch zu wenig gescrapte Vergleichsobjekte in der Region",
+                "hinweis": "Noch zu wenig gescrapte Vergleichsobjekte desselben Typs in der Region",
             }
             continue
 

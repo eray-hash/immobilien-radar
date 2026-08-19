@@ -39,12 +39,18 @@ def assess_listing(listing: dict) -> dict:
     if client is None:
         return {"status": "kein_api_key"}
 
+    flaeche = (
+        listing.get("wohnflaeche_m2")
+        or listing.get("flaeche_m2_sonstige")
+        or listing.get("grundstuecksflaeche_m2")
+    )
     facts = "\n".join(
         [
+            f"Objekttyp: {listing.get('objekt_typ_label', listing.get('objekt_typ'))}",
             f"Titel: {listing.get('title')}",
             f"Ort: {listing.get('plz')} {listing.get('ort')}",
             f"Preis: {listing.get('preis_eur')} EUR",
-            f"Wohnflaeche: {listing.get('wohnflaeche_m2')} m2",
+            f"Flaeche: {flaeche} m2",
             f"Preis pro m2: {listing.get('preis_pro_m2')} EUR",
             f"Baujahr: {listing.get('baujahr')}",
             f"Anbietertyp: {listing.get('anbieter_typ')}",

@@ -18,14 +18,31 @@ def _load_existing() -> dict:
     return {l["id"]: l for l in data.get("listings", [])}
 
 
+def _save(existing: dict, now: str) -> None:
+    # Wird nach jeder Kategorie aufgerufen, nicht erst am Ende - damit ein
+    # Abbruch/Timeout mitten im Lauf nicht die bereits abgerufenen (und bei der
+    # KI-Einschätzung bereits bezahlten) Inserate verwirft.
+    all_listings = list(existing.values())
+    scoring.attach_price_assessments(all_listings)
+
+    os.makedirs(os.path.dirname(config.OUTPUT_FILE), exist_ok=True)
+    with open(config.OUTPUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(
+            {"aktualisiert_am": now, "anzahl": len(all_listings), "listings": all_listings},
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+
 def main() -> None:
     existing = _load_existing()
     seen_ids = set()
     now = _now()
 
-    for keyword in config.SEARCH_KEYWORDS:
-        print(f"Suche: {keyword}")
-        cards = fetch_search_results(keyword)
+    for search in config.SEARCHES:
+        print(f"Suche: {search['label']} ({search['path']})")
+        cards = fetch_search_results(search["path"])
         print(f"  {len(cards)} Treffer (alle Anbieter)")
 
         for card in cards:
@@ -41,6 +58,8 @@ def main() -> None:
             detail = fetch_detail(card["url"])
 
             listing = {**card, **{k: v for k, v in detail.items() if v is not None}}
+            listing["objekt_typ"] = search["objekt_typ"]
+            listing["objekt_typ_label"] = search["label"]
             listing["sanierungsstand"] = scoring.classify_renovation(
                 listing.get("title"), listing.get("beschreibung")
             )
@@ -50,24 +69,16 @@ def main() -> None:
             listing["ki_einschaetzung"] = ai_assessment.assess_listing(listing)
             existing[adid] = listing
 
+        _save(existing, now)
+
     for adid, listing in existing.items():
         if adid not in seen_ids:
             listing["status"] = "nicht_mehr_in_trefferliste"
         else:
             listing.pop("status", None)
 
-    all_listings = list(existing.values())
-    scoring.attach_price_assessments(all_listings)
-
-    os.makedirs(os.path.dirname(config.OUTPUT_FILE), exist_ok=True)
-    with open(config.OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(
-            {"aktualisiert_am": now, "anzahl": len(all_listings), "listings": all_listings},
-            f,
-            ensure_ascii=False,
-            indent=2,
-        )
-    print(f"Fertig: {len(all_listings)} Inserate in {config.OUTPUT_FILE}")
+    _save(existing, now)
+    print(f"Fertig: {len(existing)} Inserate in {config.OUTPUT_FILE}")
 
 
 if __name__ == "__main__":

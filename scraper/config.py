@@ -1,13 +1,83 @@
 BASE_URL = "https://www.kleinanzeigen.de"
-CATEGORY_ID = 208  # Häuser zum Kauf
 
-# Suchbegriffe für Mehrfamilien-/Renditeobjekte. Mehrere Begriffe erweitern die
-# Abdeckung, da robots.txt pro Suche nur die Seiten 1-5 erlaubt (~125 Treffer/Begriff).
-SEARCH_KEYWORDS = [
-    "mehrfamilienhaus",
-    "zinshaus",
-    "renditeobjekt",
+# Jede Suche ist ein eigener robots.txt-Bucket mit bis zu 5 erlaubten Seiten
+# (siehe MAX_PAGES_PER_SEARCH). "path" ist der Pfad ab der Domain, wie er auch
+# beim Klicken durch die Kategorie/Filter auf kleinanzeigen.de entsteht -
+# verifiziert per Browser, keine geratenen URLs.
+SEARCHES = [
+    # Häuser zum Kauf, Fokus Mehrfamilienhaus/Rendite
+    {
+        "objekt_typ": "mehrfamilienhaus",
+        "label": "Mehrfamilienhaus",
+        "path": "s-haus-kaufen/mehrfamilienhaus/k0c208",
+    },
+    {
+        "objekt_typ": "mehrfamilienhaus",
+        "label": "Mehrfamilienhaus",
+        "path": "s-haus-kaufen/zinshaus/k0c208",
+    },
+    {
+        "objekt_typ": "mehrfamilienhaus",
+        "label": "Mehrfamilienhaus",
+        "path": "s-haus-kaufen/renditeobjekt/k0c208",
+    },
+    # Eigentumswohnungen (Kategorie ist bereits kaufen-only)
+    {
+        "objekt_typ": "wohnung",
+        "label": "Eigentumswohnung",
+        "path": "s-wohnung-kaufen/c196",
+    },
+    # Gewerbeimmobilien, Art:Kaufen, je Objektart eine eigene Suche
+    {
+        "objekt_typ": "gewerbe_buero",
+        "label": "Büro/Praxis",
+        "path": "s-gewerbeimmobilien/kaufen/c277+gewerbeimmobilien.art_s:kaufen"
+        "+gewerbeimmobilien.objektart_s:bueros_praxen",
+    },
+    {
+        "objekt_typ": "gewerbe_weitere",
+        "label": "Weitere Gewerbeeinheit",
+        "path": "s-gewerbeimmobilien/kaufen/c277+gewerbeimmobilien.art_s:kaufen"
+        "+gewerbeimmobilien.objektart_s:gewerbeeinheit",
+    },
+    {
+        "objekt_typ": "gewerbe_lager",
+        "label": "Lager/Halle/Produktion",
+        "path": "s-gewerbeimmobilien/kaufen/c277+gewerbeimmobilien.art_s:kaufen"
+        "+gewerbeimmobilien.objektart_s:lager_hallen_produktion",
+    },
+    {
+        "objekt_typ": "gewerbe_gastro",
+        "label": "Gastronomie/Hotel",
+        "path": "s-gewerbeimmobilien/kaufen/c277+gewerbeimmobilien.art_s:kaufen"
+        "+gewerbeimmobilien.objektart_s:gastronomie_hotels",
+    },
+    {
+        "objekt_typ": "gewerbe_einzelhandel",
+        "label": "Einzelhandel/Kiosk",
+        "path": "s-gewerbeimmobilien/kaufen/c277+gewerbeimmobilien.art_s:kaufen"
+        "+gewerbeimmobilien.objektart_s:einzelhandel_kioske",
+    },
+    # Grundstücke: robots.txt blockiert den Art/Typ-URL-Filter (grundstuecke_garten.art_s
+    # und .type_s), daher über Keyword auf Baugrundstück eingegrenzt statt per Filter.
+    # Es können vereinzelt Mietangebote mit reinrutschen, das lässt sich nicht ausschließen.
+    {
+        "objekt_typ": "grundstueck",
+        "label": "Baugrundstück",
+        "path": "s-grundstuecke-garten/baugrundstueck/k0c207",
+    },
+    # Garagen & Stellplätze, Art:Kaufen
+    {
+        "objekt_typ": "garage_stellplatz",
+        "label": "Garage/Stellplatz",
+        "path": "s-garage-lagerraum/kaufen/c197+garage_lagerraum.art_s:kaufen",
+    },
 ]
+
+# "Neubauprojekte" (c403) bewusst ausgelassen: nutzt ein komplett anderes
+# Karten-Layout (Preisspannen über mehrere Einheiten statt article.aditem) und
+# würde einen eigenen Parser brauchen - bei nur ~100 Treffern bundesweit aktuell
+# nicht im Verhältnis zum Aufwand.
 
 MAX_PAGES_PER_SEARCH = 5  # robots.txt: Disallow /*/seite:6* und höher
 
