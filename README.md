@@ -1,18 +1,28 @@
 # Immobilien-Radar
 
-Durchsucht [kleinanzeigen.de](https://www.kleinanzeigen.de) automatisiert nach privat angebotenen
-Mehrfamilienhaus-/Zinshaus-Objekten und stellt die Treffer als Übersicht bereit.
+Durchsucht [kleinanzeigen.de](https://www.kleinanzeigen.de) automatisiert nach
+Mehrfamilienhaus-/Zinshaus-Objekten (privat und gewerblich) und stellt die Treffer als
+Übersicht mit Preis-Einschätzung und KI-Textbewertung bereit.
 
 ## Wie es funktioniert
 
 - `scraper/` — Python-Scraper, robots.txt-konform (nur erlaubte URLs/Seiten, keine
   `anbieter:`- oder `sortierung:`-Parameter, da von kleinanzeigen.de per robots.txt gesperrt).
-  Anbieter-Typ (privat/gewerblich) wird stattdessen aus dem HTML der Trefferliste gelesen.
+  Anbieter-Typ (privat/gewerblich) wird stattdessen aus dem HTML der Trefferliste gelesen und
+  im Dashboard als Filter/Badge angezeigt.
+- `scraper/ai_assessment.py` — ruft für jedes neu gefundene Inserat (nicht erneut für bereits
+  bekannte, aus Kostengründen) die Claude API (Haiku 4.5) auf und lässt eine kurze
+  Investoren-Einschätzung aus Eckdaten + Inseratstext erstellen. Bei fehlendem/zu kurzem Text
+  (< 40 Zeichen) wird kein Call gemacht, sondern `status: zu_wenig_text` gesetzt. Braucht das
+  Repo-Secret `ANTHROPIC_API_KEY` — ohne Secret läuft der Scraper trotzdem (Status
+  `kein_api_key`), nur ohne KI-Text.
 - `.github/workflows/scrape.yml` — führt den Scraper 3× täglich per GitHub Actions aus und
-  committed die Ergebnisse zurück ins Repo.
+  committed die Ergebnisse zurück ins Repo. Manueller Start auch über den "↻ Neuen Scan
+  starten"-Button im Dashboard (verlinkt auf die GitHub-Actions-Seite) oder direkt in Actions.
 - `docs/` — statisches Dashboard (GitHub Pages), liest `docs/data/listings.json` und zeigt
-  Titel, Preis, €/m², Baujahr, Sanierungsstand-Einschätzung und eine Preis-Einschätzung im
-  Vergleich zu anderen gescrapten Objekten in derselben PLZ-Region/demselben Bundesland.
+  Titel, Preis, €/m², Baujahr, Sanierungsstand-Einschätzung, Anbietertyp und KI-Einschätzung.
+  Preis-Einschätzung vergleicht gegen andere gescrapte Objekte in derselben PLZ-Region/demselben
+  Bundesland.
 
 ## Setup
 
@@ -21,7 +31,10 @@ Mehrfamilienhaus-/Zinshaus-Objekten und stellt die Treffer als Übersicht bereit
 3. Unter **Actions** sicherstellen, dass Workflows aktiviert sind (Actions sind bei neuen Repos
    automatisch aktiv). Der Workflow läuft 3×/Tag automatisch, kann aber auch manuell über
    „Run workflow“ (workflow_dispatch) gestartet werden.
-4. Nach dem ersten Lauf ist das Dashboard unter `https://<user>.github.io/<repo>/` erreichbar.
+4. Unter **Settings → Secrets and variables → Actions → New repository secret** ein Secret
+   namens `ANTHROPIC_API_KEY` mit einem gültigen Anthropic-API-Key anlegen, damit die
+   KI-Texteinschätzung funktioniert.
+5. Nach dem ersten Lauf ist das Dashboard unter `https://<user>.github.io/<repo>/` erreichbar.
 
 ## Lokal ausführen
 

@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime, timezone
 
-from . import config, scoring
+from . import ai_assessment, config, scoring
 from .kleinanzeigen import fetch_detail, fetch_search_results
 
 
@@ -37,9 +37,6 @@ def main() -> None:
                 existing[adid]["preis_eur"] = card["preis_eur"] or existing[adid].get("preis_eur")
                 continue
 
-            if card["anbieter_typ"] != "privat":
-                continue  # Kriterium: idealerweise Privatverkäufer
-
             print(f"  neu: {card['title']}")
             detail = fetch_detail(card["url"])
 
@@ -50,6 +47,7 @@ def main() -> None:
             listing["lage_hinweis"] = "manuell prüfen"
             listing["erstgesehen"] = now
             listing["zuletzt_gesehen"] = now
+            listing["ki_einschaetzung"] = ai_assessment.assess_listing(listing)
             existing[adid] = listing
 
     for adid, listing in existing.items():

@@ -14,6 +14,17 @@ const RENO_LABELS = {
   unbekannt: "Zustand unbekannt",
 };
 
+const ANBIETER_LABELS = {
+  privat: "Privat",
+  gewerblich: "Gewerblich",
+};
+
+const KI_STATUS_LABELS = {
+  zu_wenig_text: "KI-Einschätzung: zu wenig Textinformation im Inserat",
+  kein_api_key: "KI-Einschätzung nicht verfügbar (kein API-Key konfiguriert)",
+  fehler: "KI-Einschätzung fehlgeschlagen",
+};
+
 let allListings = [];
 
 async function load() {
@@ -96,6 +107,7 @@ function render() {
   const sortMode = document.getElementById("sortField").value;
   const einschaetzungFilter = document.getElementById("filterEinschaetzung").value;
   const bundeslandFilter = document.getElementById("filterBundesland").value;
+  const anbieterFilter = document.getElementById("filterAnbieter").value;
   const ortQuery = document.getElementById("filterOrt").value.trim();
   const hideGone = document.getElementById("hideGone").checked;
 
@@ -110,6 +122,9 @@ function render() {
   }
   if (bundeslandFilter) {
     listings = listings.filter((l) => l.bundesland === bundeslandFilter);
+  }
+  if (anbieterFilter) {
+    listings = listings.filter((l) => l.anbieter_typ === anbieterFilter);
   }
   if (ortQuery) {
     listings = listings.filter((l) => matchesOrt(l, ortQuery));
@@ -145,6 +160,14 @@ function renderCard(l) {
       ? `${einschaetzung.abweichung_pct > 0 ? "+" : ""}${einschaetzung.abweichung_pct}% vs. ${einschaetzung.vergleichsbasis}`
       : einschaetzung.hinweis || "";
 
+  const ki = l.ki_einschaetzung || {};
+  const kiBlock =
+    ki.status === "ok"
+      ? `<p class="card-ki"><span class="card-ki-label">KI-Einschätzung:</span> ${escapeHtml(ki.text)}</p>`
+      : ki.status
+      ? `<p class="card-ki card-ki-muted">${escapeHtml(KI_STATUS_LABELS[ki.status] || ki.status)}</p>`
+      : "";
+
   el.innerHTML = `
     <a class="card-title" href="${l.url}" target="_blank" rel="noopener">${escapeHtml(l.title || "Ohne Titel")}</a>
     <div class="card-loc">${escapeHtml(l.plz || "")} ${escapeHtml(l.ort || "")}${l.bundesland ? " · " + escapeHtml(l.bundesland) : ""}</div>
@@ -155,12 +178,14 @@ function renderCard(l) {
       <span>${l.baujahr ? "Baujahr " + l.baujahr : "Baujahr unbekannt"}</span>
     </div>
     <div class="badges">
+      <span class="badge anbieter-${l.anbieter_typ || ""}">${ANBIETER_LABELS[l.anbieter_typ] || "Anbieter unbekannt"}</span>
       <span class="badge ${einschaetzung.label || ""}" title="${escapeHtml(abweichung)}">${einschaetzungLabel}</span>
       <span class="badge outline">${RENO_LABELS[l.sanierungsstand] || l.sanierungsstand}</span>
       <span class="badge outline">Lage: manuell prüfen</span>
       ${l.status === "nicht_mehr_in_trefferliste" ? '<span class="badge outline">nicht mehr gelistet</span>' : ""}
     </div>
     <p class="card-desc">${escapeHtml((l.beschreibung || "").slice(0, 220))}${(l.beschreibung || "").length > 220 ? "…" : ""}</p>
+    ${kiBlock}
     <div class="card-footer">
       <span>Zuerst gesehen: ${formatDate(l.erstgesehen)}</span>
       <span>${abweichung && einschaetzung.abweichung_pct !== undefined ? abweichung : ""}</span>
@@ -176,7 +201,7 @@ function escapeHtml(str) {
 }
 
 const liveInputs = ["search", "preisMin", "preisMax", "flaecheMin", "flaecheMax", "filterOrt"];
-const changeInputs = ["sortField", "filterEinschaetzung", "filterBundesland", "hideGone"];
+const changeInputs = ["sortField", "filterEinschaetzung", "filterBundesland", "filterAnbieter", "hideGone"];
 liveInputs.forEach((id) => document.getElementById(id).addEventListener("input", render));
 changeInputs.forEach((id) => document.getElementById(id).addEventListener("change", render));
 
@@ -184,6 +209,7 @@ document.getElementById("resetFilters").addEventListener("click", () => {
   liveInputs.forEach((id) => (document.getElementById(id).value = ""));
   document.getElementById("filterEinschaetzung").value = "";
   document.getElementById("filterBundesland").value = "";
+  document.getElementById("filterAnbieter").value = "";
   document.getElementById("hideGone").checked = false;
   render();
 });

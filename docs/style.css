@@ -253,6 +253,8 @@ body {
 .badge.teuer { background: var(--teuer); }
 .badge.zu_wenig_vergleichsdaten,
 .badge.keine_daten { background: var(--unknown); }
+.badge.anbieter-privat { background: #3a6ea5; }
+.badge.anbieter-gewerblich { background: #6b6862; }
 .badge.outline {
   background: transparent;
   border: 1px solid var(--border);
@@ -265,6 +267,26 @@ body {
   line-height: 1.4;
   max-height: 4.2em;
   overflow: hidden;
+}
+
+.card-ki {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.card-ki-label {
+  font-weight: 600;
+}
+
+.card-ki-muted {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  font-style: italic;
 }
 
 .card-footer {
