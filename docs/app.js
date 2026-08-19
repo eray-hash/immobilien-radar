@@ -205,6 +205,12 @@ function render() {
   }
   listings = sortListings(listings, sortMode);
 
+  const resultCount = document.getElementById("resultCount");
+  resultCount.textContent =
+    listings.length === allListings.length
+      ? `${listings.length} Inserate`
+      : `${listings.length} von ${allListings.length} Inseraten angezeigt`;
+
   const container = document.getElementById("cards");
   container.innerHTML = "";
   document.getElementById("empty").hidden = listings.length > 0;
