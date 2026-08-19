@@ -65,8 +65,14 @@
     <input type="number" id="flaecheMax" placeholder="bis m²" min="0">
   </div>
   <input type="text" id="filterOrt" placeholder="Standort: PLZ oder Ort…">
+  <div class="range-group radius-group" id="radiusGroup" hidden>
+    <span class="range-label">Umkreis</span>
+    <input type="range" id="radiusKm" min="5" max="300" step="5" value="50">
+    <span id="radiusKmLabel">50 km</span>
+  </div>
   <button type="button" id="resetFilters">Filter zurücksetzen</button>
 </section>
+<p class="radius-hint" id="radiusHint" hidden></p>
 
 <main id="cards"></main>
 <p id="empty" class="empty" hidden>Keine Treffer gefunden.</p>

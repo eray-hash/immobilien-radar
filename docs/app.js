@@ -26,16 +26,33 @@ const KI_STATUS_LABELS = {
 };
 
 let allListings = [];
+let plzCoords = {};
+let activeOrigin = null; // {plz, lat, lon} wenn Umkreissuche aktiv ist
 
 async function load() {
-  const res = await fetch("data/listings.json", { cache: "no-store" });
-  const data = await res.json();
+  const [listingsRes, coordsRes] = await Promise.all([
+    fetch("data/listings.json", { cache: "no-store" }),
+    fetch("data/plz_coords.json", { cache: "no-store" }),
+  ]);
+  const data = await listingsRes.json();
   allListings = data.listings || [];
+  plzCoords = await coordsRes.json();
   document.getElementById("meta").textContent =
     `${data.anzahl} Inserate · zuletzt aktualisiert ${formatDate(data.aktualisiert_am)}`;
   populateBundeslandFilter();
   populateObjektTypFilter();
   render();
+}
+
+// Luftlinien-Entfernung zwischen zwei Koordinaten (Haversine-Formel), in km.
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function populateBundeslandFilter() {
@@ -136,6 +153,24 @@ function render() {
   const flaecheMin = numOrNull("flaecheMin");
   const flaecheMax = numOrNull("flaecheMax");
 
+  const radiusGroup = document.getElementById("radiusGroup");
+  const radiusHint = document.getElementById("radiusHint");
+  const isPlzQuery = /^\d{5}$/.test(ortQuery);
+  activeOrigin = null;
+  radiusGroup.hidden = true;
+  radiusHint.hidden = true;
+
+  if (isPlzQuery) {
+    const coords = plzCoords[ortQuery];
+    if (coords) {
+      activeOrigin = { plz: ortQuery, lat: coords[0], lon: coords[1] };
+      radiusGroup.hidden = false;
+    } else {
+      radiusHint.hidden = false;
+      radiusHint.textContent = `Keine Koordinaten für PLZ ${ortQuery} gefunden — normale Textsuche wird verwendet.`;
+    }
+  }
+
   let listings = allListings.filter((l) => matchesSearch(l, query));
   if (einschaetzungFilter) {
     listings = listings.filter((l) => l.preis_einschaetzung?.label === einschaetzungFilter);
@@ -149,7 +184,14 @@ function render() {
   if (anbieterFilter) {
     listings = listings.filter((l) => l.anbieter_typ === anbieterFilter);
   }
-  if (ortQuery) {
+  if (activeOrigin) {
+    const radiusKm = Number(document.getElementById("radiusKm").value);
+    listings = listings.filter((l) => {
+      const coords = l.plz && plzCoords[l.plz];
+      if (!coords) return false;
+      return haversineKm(activeOrigin.lat, activeOrigin.lon, coords[0], coords[1]) <= radiusKm;
+    });
+  } else if (ortQuery) {
     listings = listings.filter((l) => matchesOrt(l, ortQuery));
   }
   if (preisMin !== null || preisMax !== null) {
@@ -175,6 +217,13 @@ function render() {
 function renderCard(l) {
   const el = document.createElement("article");
   el.className = "card" + (l.status === "nicht_mehr_in_trefferliste" ? " gone" : "");
+
+  let distanceText = "";
+  if (activeOrigin && l.plz && plzCoords[l.plz]) {
+    const [lat, lon] = plzCoords[l.plz];
+    const km = haversineKm(activeOrigin.lat, activeOrigin.lon, lat, lon);
+    distanceText = `${Math.round(km)} km von ${activeOrigin.plz}`;
+  }
 
   const einschaetzung = l.preis_einschaetzung || {};
   const einschaetzungLabel = LABELS[einschaetzung.label] || einschaetzung.label || "-";
@@ -211,7 +260,7 @@ function renderCard(l) {
     <p class="card-desc">${escapeHtml((l.beschreibung || "").slice(0, 220))}${(l.beschreibung || "").length > 220 ? "…" : ""}</p>
     ${kiBlock}
     <div class="card-footer">
-      <span>Zuerst gesehen: ${formatDate(l.erstgesehen)}</span>
+      <span>Zuerst gesehen: ${formatDate(l.erstgesehen)}${distanceText ? " · " + escapeHtml(distanceText) : ""}</span>
       <span>${abweichung && einschaetzung.abweichung_pct !== undefined ? abweichung : ""}</span>
     </div>
   `;
@@ -224,7 +273,7 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-const liveInputs = ["search", "preisMin", "preisMax", "flaecheMin", "flaecheMax", "filterOrt"];
+const liveInputs = ["search", "preisMin", "preisMax", "flaecheMin", "flaecheMax", "filterOrt", "radiusKm"];
 const changeInputs = [
   "sortField",
   "filterEinschaetzung",
@@ -236,8 +285,14 @@ const changeInputs = [
 liveInputs.forEach((id) => document.getElementById(id).addEventListener("input", render));
 changeInputs.forEach((id) => document.getElementById(id).addEventListener("change", render));
 
+document.getElementById("radiusKm").addEventListener("input", (e) => {
+  document.getElementById("radiusKmLabel").textContent = `${e.target.value} km`;
+});
+
 document.getElementById("resetFilters").addEventListener("click", () => {
-  liveInputs.forEach((id) => (document.getElementById(id).value = ""));
+  liveInputs.filter((id) => id !== "radiusKm").forEach((id) => (document.getElementById(id).value = ""));
+  document.getElementById("radiusKm").value = 50;
+  document.getElementById("radiusKmLabel").textContent = "50 km";
   document.getElementById("filterEinschaetzung").value = "";
   document.getElementById("filterBundesland").value = "";
   document.getElementById("filterObjektTyp").value = "";
