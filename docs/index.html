@@ -8,9 +8,17 @@
 </head>
 <body>
 <header class="topbar">
-  <h1>Immobilien-Radar</h1>
-  <p class="subtitle">Private Mehrfamilienhaus-/Zinshaus-Inserate von Kleinanzeigen — automatisch aktualisiert</p>
+  <div class="topbar-row">
+    <div>
+      <h1>Immobilien-Radar</h1>
+      <p class="subtitle">Private Mehrfamilienhaus-/Zinshaus-Inserate von Kleinanzeigen — automatisch aktualisiert</p>
+    </div>
+    <a class="rescan-button" href="https://github.com/eray-hash/immobilien-radar/actions/workflows/scrape.yml" target="_blank" rel="noopener">
+      ↻ Neuen Scan starten
+    </a>
+  </div>
   <p class="meta" id="meta"></p>
+  <p class="rescan-hint">Öffnet GitHub Actions — dort auf „Run workflow“ klicken (GitHub-Login mit Repo-Zugriff nötig). Läuft sonst automatisch 3×/Tag.</p>
 </header>
 
 <section class="controls">
