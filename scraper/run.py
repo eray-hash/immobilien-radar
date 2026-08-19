@@ -6,6 +6,9 @@ from . import ai_assessment, config, scoring
 from .kleinanzeigen import fetch_detail, fetch_search_results
 
 
+RETRYABLE_KI_STATUS = {"kein_api_key", "fehler"}
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -52,6 +55,13 @@ def main() -> None:
             if adid in existing:
                 existing[adid]["zuletzt_gesehen"] = now
                 existing[adid]["preis_eur"] = card["preis_eur"] or existing[adid].get("preis_eur")
+                # kein_api_key/fehler sind keine endgültigen Zustände (im Gegensatz zu
+                # "ok" und "zu_wenig_text") - erneut versuchen, z.B. wenn der Key
+                # zwischenzeitlich hinterlegt wurde oder ein API-Fehler transient war.
+                ki_status = existing[adid].get("ki_einschaetzung", {}).get("status")
+                if ki_status in RETRYABLE_KI_STATUS:
+                    print(f"  KI-Retry: {existing[adid]['title']}")
+                    existing[adid]["ki_einschaetzung"] = ai_assessment.assess_listing(existing[adid])
                 continue
 
             print(f"  neu: {card['title']}")
