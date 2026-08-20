@@ -211,6 +211,22 @@ function render() {
       ? `${listings.length} Inserate`
       : `${listings.length} von ${allListings.length} Inseraten angezeigt`;
 
+  const activeFilterCount = [
+    einschaetzungFilter,
+    bundeslandFilter,
+    objektTypFilter,
+    anbieterFilter,
+    hideGone,
+    preisMin !== null,
+    preisMax !== null,
+    flaecheMin !== null,
+    flaecheMax !== null,
+    ortQuery,
+  ].filter(Boolean).length;
+  const filterCountEl = document.getElementById("filterCount");
+  filterCountEl.textContent = activeFilterCount;
+  filterCountEl.hidden = activeFilterCount === 0;
+
   const container = document.getElementById("cards");
   container.innerHTML = "";
   document.getElementById("empty").hidden = listings.length > 0;
@@ -290,6 +306,12 @@ const changeInputs = [
 ];
 liveInputs.forEach((id) => document.getElementById(id).addEventListener("input", render));
 changeInputs.forEach((id) => document.getElementById(id).addEventListener("change", render));
+
+document.getElementById("filtersToggle").addEventListener("click", () => {
+  const panel = document.getElementById("filtersPanel");
+  const collapsed = panel.classList.toggle("collapsed");
+  document.getElementById("filtersToggle").setAttribute("aria-expanded", String(!collapsed));
+});
 
 document.getElementById("radiusKm").addEventListener("input", (e) => {
   document.getElementById("radiusKmLabel").textContent = `${e.target.value} km`;

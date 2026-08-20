@@ -21,58 +21,66 @@
   <p class="rescan-hint">Öffnet GitHub Actions — dort auf „Run workflow“ klicken (GitHub-Login mit Repo-Zugriff nötig). Läuft sonst automatisch 3×/Tag.</p>
 </header>
 
-<section class="controls">
+<section class="search-row">
   <input type="text" id="search" placeholder="Suche in Titel, Ort, Beschreibung…">
-  <select id="sortField">
-    <option value="preis_pro_m2_asc">€/m² aufsteigend</option>
-    <option value="preis_pro_m2_desc">€/m² absteigend</option>
-    <option value="preis_asc">Preis aufsteigend</option>
-    <option value="preis_desc">Preis absteigend</option>
-    <option value="neu">Zuletzt gesehen</option>
-  </select>
-  <select id="filterEinschaetzung">
-    <option value="">Alle Einschätzungen</option>
-    <option value="guenstig">Günstig</option>
-    <option value="im_rahmen">Im Rahmen</option>
-    <option value="teuer">Teuer</option>
-    <option value="zu_wenig_vergleichsdaten">Zu wenig Vergleichsdaten</option>
-  </select>
-  <select id="filterObjektTyp">
-    <option value="">Alle Objekttypen</option>
-  </select>
-  <select id="filterBundesland">
-    <option value="">Alle Bundesländer</option>
-  </select>
-  <select id="filterAnbieter">
-    <option value="">Privat + Gewerblich</option>
-    <option value="privat">Nur Privat</option>
-    <option value="gewerblich">Nur Gewerblich</option>
-  </select>
-  <label class="checkbox"><input type="checkbox" id="hideGone"> Entfernte Inserate ausblenden</label>
+  <button type="button" id="filtersToggle" class="filters-toggle" aria-expanded="false" aria-controls="filtersPanel">
+    Filter <span id="filterCount" class="filter-count" hidden>0</span>
+  </button>
 </section>
 
-<section class="controls controls-range">
-  <div class="range-group">
-    <span class="range-label">Preis</span>
-    <input type="number" id="preisMin" placeholder="von €" min="0">
-    <span class="range-sep">–</span>
-    <input type="number" id="preisMax" placeholder="bis €" min="0">
-  </div>
-  <div class="range-group">
-    <span class="range-label">Fläche</span>
-    <input type="number" id="flaecheMin" placeholder="von m²" min="0">
-    <span class="range-sep">–</span>
-    <input type="number" id="flaecheMax" placeholder="bis m²" min="0">
-  </div>
-  <input type="text" id="filterOrt" placeholder="Standort: PLZ oder Ort…">
-  <div class="range-group radius-group" id="radiusGroup" hidden>
-    <span class="range-label">Umkreis</span>
-    <input type="range" id="radiusKm" min="5" max="300" step="5" value="50">
-    <span id="radiusKmLabel">50 km</span>
-  </div>
-  <button type="button" id="resetFilters">Filter zurücksetzen</button>
-</section>
-<p class="radius-hint" id="radiusHint" hidden></p>
+<div id="filtersPanel" class="filters-panel collapsed">
+  <section class="controls">
+    <select id="sortField">
+      <option value="preis_pro_m2_asc">€/m² aufsteigend</option>
+      <option value="preis_pro_m2_desc">€/m² absteigend</option>
+      <option value="preis_asc">Preis aufsteigend</option>
+      <option value="preis_desc">Preis absteigend</option>
+      <option value="neu">Zuletzt gesehen</option>
+    </select>
+    <select id="filterEinschaetzung">
+      <option value="">Alle Einschätzungen</option>
+      <option value="guenstig">Günstig</option>
+      <option value="im_rahmen">Im Rahmen</option>
+      <option value="teuer">Teuer</option>
+      <option value="zu_wenig_vergleichsdaten">Zu wenig Vergleichsdaten</option>
+    </select>
+    <select id="filterObjektTyp">
+      <option value="">Alle Objekttypen</option>
+    </select>
+    <select id="filterBundesland">
+      <option value="">Alle Bundesländer</option>
+    </select>
+    <select id="filterAnbieter">
+      <option value="">Privat + Gewerblich</option>
+      <option value="privat">Nur Privat</option>
+      <option value="gewerblich">Nur Gewerblich</option>
+    </select>
+    <label class="checkbox"><input type="checkbox" id="hideGone"> Entfernte Inserate ausblenden</label>
+  </section>
+
+  <section class="controls controls-range">
+    <div class="range-group">
+      <span class="range-label">Preis</span>
+      <input type="number" id="preisMin" placeholder="von €" min="0">
+      <span class="range-sep">–</span>
+      <input type="number" id="preisMax" placeholder="bis €" min="0">
+    </div>
+    <div class="range-group">
+      <span class="range-label">Fläche</span>
+      <input type="number" id="flaecheMin" placeholder="von m²" min="0">
+      <span class="range-sep">–</span>
+      <input type="number" id="flaecheMax" placeholder="bis m²" min="0">
+    </div>
+    <input type="text" id="filterOrt" placeholder="Standort: PLZ oder Ort…">
+    <div class="range-group radius-group" id="radiusGroup" hidden>
+      <span class="range-label">Umkreis</span>
+      <input type="range" id="radiusKm" min="5" max="300" step="5" value="50">
+      <span id="radiusKmLabel">50 km</span>
+    </div>
+    <button type="button" id="resetFilters">Filter zurücksetzen</button>
+  </section>
+  <p class="radius-hint" id="radiusHint" hidden></p>
+</div>
 <p class="result-count" id="resultCount"></p>
 
 <main id="cards"></main>

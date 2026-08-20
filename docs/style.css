@@ -86,6 +86,58 @@ body {
   color: var(--muted);
 }
 
+.search-row {
+  max-width: 1100px;
+  margin: 16px auto 0;
+  padding: 0 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.search-row input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.filters-toggle {
+  flex-shrink: 0;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.filters-panel {
+  overflow: hidden;
+}
+
 .controls {
   max-width: 1100px;
   margin: 16px auto;
@@ -335,4 +387,110 @@ body {
   text-align: center;
   color: var(--muted);
   margin-top: 60px;
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    padding: 16px 16px 8px;
+  }
+
+  .topbar h1 {
+    font-size: 1.3rem;
+  }
+
+  .subtitle {
+    font-size: 0.88rem;
+  }
+
+  .rescan-button {
+    padding: 10px 14px;
+    font-size: 0.88rem;
+  }
+
+  .meta,
+  .rescan-hint {
+    font-size: 0.76rem;
+  }
+
+  .search-row,
+  .controls,
+  .result-count,
+  .radius-hint,
+  #cards {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .search-row input[type="text"] {
+    padding: 11px 12px;
+    font-size: 16px; /* verhindert Auto-Zoom beim Fokussieren auf iOS */
+  }
+
+  .filters-toggle {
+    display: inline-flex;
+  }
+
+  .filters-panel.collapsed {
+    display: none;
+  }
+
+  .controls {
+    margin: 12px auto;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .controls-range {
+    margin-top: -2px;
+  }
+
+  .controls select,
+  .range-group,
+  #filterOrt,
+  #resetFilters {
+    width: 100%;
+  }
+
+  .controls select,
+  #filterOrt {
+    padding: 11px 12px;
+    font-size: 16px;
+  }
+
+  .range-group input[type="number"] {
+    width: 100%;
+    padding: 8px 4px;
+    font-size: 16px;
+  }
+
+  #resetFilters {
+    padding: 11px 12px;
+  }
+
+  .checkbox {
+    padding: 4px 0;
+  }
+
+  .result-count {
+    margin-top: 10px;
+  }
+
+  #cards {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .card {
+    padding: 14px;
+    min-width: 0;
+  }
+
+  .card-footer {
+    flex-wrap: wrap;
+    gap: 4px 10px;
+  }
+
+  .card-title {
+    font-size: 1rem;
+  }
 }
