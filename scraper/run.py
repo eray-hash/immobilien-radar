@@ -7,6 +7,7 @@ from .kleinanzeigen import fetch_detail, fetch_search_results
 
 
 RETRYABLE_KI_STATUS = {"kein_api_key", "fehler"}
+MAX_KI_RETRIES_PER_RUN = 100
 
 
 def _now() -> str:
@@ -42,6 +43,7 @@ def main() -> None:
     existing = _load_existing()
     seen_ids = set()
     now = _now()
+    ki_retries_left = MAX_KI_RETRIES_PER_RUN
 
     for search in config.SEARCHES:
         print(f"Suche: {search['label']} ({search['path']})")
@@ -59,9 +61,10 @@ def main() -> None:
                 # "ok" und "zu_wenig_text") - erneut versuchen, z.B. wenn der Key
                 # zwischenzeitlich hinterlegt wurde oder ein API-Fehler transient war.
                 ki_status = existing[adid].get("ki_einschaetzung", {}).get("status")
-                if ki_status in RETRYABLE_KI_STATUS:
+                if ki_status in RETRYABLE_KI_STATUS and ki_retries_left > 0:
                     print(f"  KI-Retry: {existing[adid]['title']}")
                     existing[adid]["ki_einschaetzung"] = ai_assessment.assess_listing(existing[adid])
+                    ki_retries_left -= 1
                 continue
 
             print(f"  neu: {card['title']}")

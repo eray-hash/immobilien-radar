@@ -5,6 +5,7 @@ import os
 import anthropic
 
 MIN_TEXT_LENGTH = 40
+MAX_TEXT_LENGTH = 1500
 MODEL = "claude-haiku-4-5"
 
 SYSTEM_PROMPT = """Du bist ein erfahrener Immobilieninvestor, der Kaufobjekte fuer eine \
@@ -56,7 +57,10 @@ def assess_listing(listing: dict) -> dict:
             f"Anbietertyp: {listing.get('anbieter_typ')}",
         ]
     )
-    user_content = f"{facts}\n\nInseratstext:\n{beschreibung}"
+    # Lange Inserate kosten unnötig viele Input-Tokens - fuer eine 2-4-Satz-
+    # Einschaetzung reicht der Anfang des Texts.
+    gekuerzt = beschreibung[:MAX_TEXT_LENGTH]
+    user_content = f"{facts}\n\nInseratstext:\n{gekuerzt}"
 
     try:
         response = client.messages.create(
