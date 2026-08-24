@@ -2,10 +2,8 @@ name: Scrape Kleinanzeigen
 
 on:
   schedule:
-    # jeweils in UTC: 06:30, 12:30, 18:30 (entspricht ca. 07:30/08:30, 13:30/14:30, 19:30/20:30 in Deutschland)
+    # 06:30 UTC = ca. 07:30/08:30 in Deutschland (je nach Sommer-/Winterzeit)
     - cron: "30 6 * * *"
-    - cron: "30 12 * * *"
-    - cron: "30 18 * * *"
   workflow_dispatch: {}
 
 permissions:
