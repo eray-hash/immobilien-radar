@@ -269,7 +269,7 @@ body {
 
 #cards {
   max-width: 1100px;
-  margin: 0 auto 60px;
+  margin: 0 auto 20px;
   padding: 0 20px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -383,6 +383,43 @@ body {
   margin-top: auto;
 }
 
+.expose-btn {
+  margin-top: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.expose-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.load-more {
+  display: block;
+  max-width: 1100px;
+  margin: 4px auto 60px;
+  padding: 12px 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.load-more:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .empty {
   text-align: center;
   color: var(--muted);
@@ -492,5 +529,10 @@ body {
 
   .card-title {
     font-size: 1rem;
+  }
+
+  .expose-btn {
+    width: 100%;
+    padding: 11px 12px;
   }
 }
