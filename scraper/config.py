@@ -102,5 +102,15 @@ RENOVATION_KEYWORDS = {
         "sanierungsobjekt",
         "sanierungsfall",
         "modernisierungsbedürftig",
+        # negierte Formulierungen ("nicht renoviert" etc.) - "saniert"/"renoviert"/
+        # "modernisiert" wären sonst als Teilstring-Treffer faelschlich positiv erkannt
+        "unsaniert",
+        "unrenoviert",
+        "nicht saniert",
+        "nicht renoviert",
+        "nicht modernisiert",
+        "nie saniert",
+        "nie renoviert",
+        "nie modernisiert",
     ],
 }

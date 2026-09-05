@@ -7,7 +7,11 @@ from bs4 import BeautifulSoup
 from . import config
 from .http_client import get
 
-_PRICE_RE = re.compile(r"([\d.]+)\s*€")
+# Deutsche Zahlformat-Dezimalstellen (",08") erlauben, sonst matcht bei
+# "2.604,08 €/m²" nur das Fragment "08" vor dem €-Zeichen. "€/m²"-Angaben
+# (Preis PRO Quadratmeter statt Gesamtpreis) explizit ausschliessen, sonst
+# wird ein €/m²-Wert faelschlich als Gesamtpreis uebernommen.
+_PRICE_RE = re.compile(r"([\d.]+(?:,\d+)?)\s*€(?!\s*/\s*m)")
 _M2_RE = re.compile(r"([\d.,]+)\s*m²")
 _PLZ_ORT_RE = re.compile(r"(\d{5})\s+(.+)")
 _YEAR_RE = re.compile(r"\b(1[89]\d{2}|20\d{2})\b")
@@ -54,7 +58,11 @@ def _parse_price(text: str) -> float | None:
     m = _PRICE_RE.search(text.replace("\xa0", " "))
     if not m:
         return None
-    return float(m.group(1).replace(".", ""))
+    raw = m.group(1).replace(".", "").replace(",", ".")
+    try:
+        return float(raw)
+    except ValueError:
+        return None
 
 
 def _parse_m2(text: str) -> float | None:
@@ -65,35 +73,54 @@ def _parse_m2(text: str) -> float | None:
 
 
 def parse_search_results(html: str) -> list[dict]:
+    # kleinanzeigen.de ist auf ein neues (Astro/Tailwind-basiertes) Frontend
+    # umgestiegen - die alten "aditem"-Klassen gibt es nicht mehr. Die neuen
+    # Utility-Klassen sind autogeneriert und instabil, darum wird hier so weit
+    # wie moeglich ueber stabilere Signale gegriffen: data-Attribute,
+    # Textmuster (PLZ/€/m²) und Alt-Texte statt Klassennamen.
     soup = BeautifulSoup(html, "lxml")
     results = []
-    for article in soup.select("article.aditem"):
+    for article in soup.select("article[data-adid]"):
         adid = article.get("data-adid")
         href = article.get("data-href")
         if not adid or not href:
             continue
 
-        title_el = article.select_one("h2 a.ellipsis")
+        # Meist ein <a> im <h3>, manche Karten zeigen den Titel aber ueber ein
+        # anklickbares <span> ohne <a> - dann auf den ganzen <h3>-Text ausweichen.
+        title_el = article.select_one("h3 a") or article.select_one("h3")
         title = title_el.get_text(strip=True) if title_el else None
 
-        loc_el = article.select_one(".aditem-main--top--left")
-        loc_text = loc_el.get_text(strip=True) if loc_el else ""
         plz, ort = None, None
-        m = _PLZ_ORT_RE.search(loc_text)
-        if m:
-            plz, ort = m.group(1), m.group(2)
+        for span in article.find_all("span"):
+            m = _PLZ_ORT_RE.match(span.get_text(strip=True))
+            if m:
+                plz, ort = m.group(1), m.group(2)
+                break
 
-        tags_el = article.select_one(".aditem-main--middle--tags")
-        wohnflaeche = _parse_m2(tags_el.get_text(" ", strip=True)) if tags_el else None
+        # Nur kurze, "strukturiert wirkende" Absaetze beruecksichtigen (z.B.
+        # "550 m² · 16 Zi." oder "2.300.000 €") - der lange Beschreibungs-
+        # Teaser-Absatz kann inzidentell eine Flaechen-/Preisangabe im
+        # Fliesstext enthalten und soll hier nicht faelschlich gewinnen.
+        wohnflaeche = None
+        preis = None
+        for p in article.find_all("p"):
+            text = p.get_text(" ", strip=True)
+            if len(text) > 60:
+                continue
+            if wohnflaeche is None:
+                wohnflaeche = _parse_m2(text)
+            if preis is None:
+                preis = _parse_price(text)
 
-        price_el = article.select_one(".aditem-main--middle--price-shipping--price")
-        preis = _parse_price(price_el.get_text(" ", strip=True)) if price_el else None
+        # Gewerbliche Anbieter zeigen eine Firmenzeile (Logo und/oder Name) unter
+        # dem Preis, private Inserate haben diesen Block gar nicht. Manche
+        # gewerblichen Anbieter zeigen nur den Namen ohne Logo - daher beide
+        # Signale pruefen statt nur auf das Logo zu verlassen.
+        hat_firmenzeile = article.select_one('img[alt*="Logo des Unternehmens"]') or article.select_one("div.mt-xsmall")
+        anbieter_typ = "gewerblich" if hat_firmenzeile else "privat"
 
-        bottom_el = article.select_one(".aditem-main--bottom")
-        bottom_text = bottom_el.get_text(" ", strip=True) if bottom_el else ""
-        anbieter_typ = "privat" if "Von Privat" in bottom_text else "gewerblich"
-
-        is_top = article.select_one(".aditem-image--badges--badge-topad") is not None
+        is_top = article.find(lambda tag: tag.name in ("div", "span") and tag.get_text(strip=True) == "TOP") is not None
 
         results.append(
             {
@@ -176,27 +203,35 @@ def _fetch_page_with_retry(url: str, retries: int = 2) -> list[dict]:
     # kleinanzeigen liefert bei "Empfohlen"-Sortierung gelegentlich eine leere
     # Trefferliste im selben HTML-Gerüst zurück (transientes Server-/CDN-Verhalten,
     # kein robots.txt- oder Statuscode-Fehler) - daher hier mit erneutem Versuch abfedern.
+    # Ein einzelner HTTP-Fehler (429/5xx/Timeout) soll ebenfalls einen erneuten
+    # Versuch bekommen statt die ganze Kategorie sofort aufzugeben - genau das
+    # hat schon einmal eine komplette Kategorie faelschlich auf "0 Treffer"
+    # gesetzt und darüber Inserate als "nicht mehr gelistet" markiert.
     for attempt in range(retries + 1):
         html = get(url)
-        if html is None:
-            return []
-        results = parse_search_results(html)
+        results = parse_search_results(html) if html is not None else []
         if results:
             return results
         if attempt < retries:
-            print(f"  0 Treffer bei {url} (Versuch {attempt + 1}/{retries + 1}), erneuter Versuch...")
+            grund = "kein HTTP-Erfolg" if html is None else "0 Treffer"
+            print(f"  {grund} bei {url} (Versuch {attempt + 1}/{retries + 1}), erneuter Versuch...")
     return []
 
 
 def fetch_search_results(path: str) -> list[dict]:
     all_results = []
+    page_size = None  # aus Seite 1 ableiten statt fest zu verdrahten (war 25,
+    # das neue Frontend liefert 27/Seite - eine harte Zahl faellt sonst bei
+    # der naechsten Layout-Aenderung wieder aus dem Ruder)
     for page in range(1, config.MAX_PAGES_PER_SEARCH + 1):
         page_results = _fetch_page_with_retry(_page_url(path, page))
         if not page_results:
             break
         all_results.extend(page_results)
-        if len(page_results) < 25:
-            break  # letzte Seite erreicht
+        if page_size is None:
+            page_size = len(page_results)
+        elif len(page_results) < page_size:
+            break  # kuerzer als vorherige Seiten -> letzte Seite erreicht
     return all_results
 
 
@@ -204,4 +239,11 @@ def fetch_detail(url: str) -> dict:
     html = get(url)
     if html is None:
         return {}
-    return parse_detail(html)
+    detail = parse_detail(html)
+    # Ein abgelaufenes Inserat leitet auf eine Kategorie-Seite um; requests
+    # folgt dem Redirect automatisch und parse_detail() findet dort keine
+    # Detail-Elemente - kommt also leer zurueck, ohne dass "get" das als
+    # Fehler erkennen wuerde (Statuscode ist 200, nur die falsche Seite).
+    if not detail:
+        print(f"  [leere Detailseite, evtl. abgelaufen/umgeleitet] {url}")
+    return detail

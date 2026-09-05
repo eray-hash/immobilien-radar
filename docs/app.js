@@ -139,14 +139,18 @@ function sortListings(listings, mode) {
 
 function matchesOrt(listing, query) {
   if (!query) return true;
-  const q = query.toLowerCase();
+  // Query genauso in Woerter zerlegen wie den Haystack (statt nur zu
+  // lowercasen) - sonst matcht z.B. "Kr." (mit Punkt, wie er in echten
+  // Ortsangaben wie "Kr. Altötting - Teising" vorkommt) nichts, weil der
+  // Punkt im getippten Suchbegriff bleibt, aber im zerlegten Ort-Token fehlt.
+  // Jedes Query-Wort muss (als Praefix) irgendein Haystack-Wort treffen -
+  // wichtig: KEIN Vergleich gegen den zusammengefuegten String, sonst waere
+  // wieder die urspruengliche "Berlin" != "Überlingen"-Falle offen.
+  const qTokens = query.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (qTokens.length === 0) return true;
   const haystack = `${listing.plz || ""} ${listing.ort || ""}`.toLowerCase();
-  // Wort-Praefix-Suche statt reinem substring-Vergleich: "Berlin" soll nicht
-  // zufaellig in "Überlingen" matchen (b-e-r-l-i-n steckt da drin). JS-Regex-
-  // Wortgrenzen (\b) helfen hier nicht, da Umlaute nicht als \w gelten -
-  // stattdessen in echte Woerter zerlegen und Praefix pruefen.
   const tokens = haystack.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-  return tokens.some((t) => t.startsWith(q));
+  return qTokens.every((qt) => tokens.some((t) => t.startsWith(qt)));
 }
 
 function inRange(value, min, max) {
@@ -312,19 +316,19 @@ function renderCard(l) {
       : "";
 
   el.innerHTML = `
-    <a class="card-title" href="${l.url}" target="_blank" rel="noopener">${escapeHtml(l.title || "Ohne Titel")}</a>
+    <a class="card-title" href="${escapeHtml(safeUrl(l.url))}" target="_blank" rel="noopener">${escapeHtml(l.title || "Ohne Titel")}</a>
     <div class="card-loc">${escapeHtml(l.plz || "")} ${escapeHtml(l.ort || "")}${l.bundesland ? " · " + escapeHtml(l.bundesland) : ""}</div>
     <div class="card-numbers">
       <span><b>${formatEur(l.preis_eur)}</b></span>
-      <span>${bestFlaeche(l) ? bestFlaeche(l) + " m²" : "m² unbekannt"}</span>
+      <span>${bestFlaeche(l) ? escapeHtml(String(bestFlaeche(l))) + " m²" : "m² unbekannt"}</span>
       <span>${l.preis_pro_m2 ? formatEur(l.preis_pro_m2) + "/m²" : ""}</span>
-      <span>${l.baujahr ? "Baujahr " + l.baujahr : "Baujahr unbekannt"}</span>
+      <span>${l.baujahr ? "Baujahr " + escapeHtml(String(l.baujahr)) : "Baujahr unbekannt"}</span>
     </div>
     <div class="badges">
       <span class="badge outline objekt-typ">${escapeHtml(l.objekt_typ_label || l.objekt_typ || "Objekttyp unbekannt")}</span>
-      <span class="badge anbieter-${l.anbieter_typ || ""}">${ANBIETER_LABELS[l.anbieter_typ] || "Anbieter unbekannt"}</span>
-      <span class="badge ${einschaetzung.label || ""}" title="${escapeHtml(abweichung)}">${einschaetzungLabel}</span>
-      <span class="badge outline">${RENO_LABELS[l.sanierungsstand] || l.sanierungsstand}</span>
+      <span class="badge anbieter-${escapeHtml(l.anbieter_typ || "")}">${escapeHtml(ANBIETER_LABELS[l.anbieter_typ] || "Anbieter unbekannt")}</span>
+      <span class="badge ${escapeHtml(einschaetzung.label || "")}" title="${escapeHtml(abweichung)}">${escapeHtml(einschaetzungLabel)}</span>
+      <span class="badge outline">${escapeHtml(RENO_LABELS[l.sanierungsstand] || l.sanierungsstand || "")}</span>
       <span class="badge outline">Lage: manuell prüfen</span>
       ${l.status === "nicht_mehr_in_trefferliste" ? '<span class="badge outline">nicht mehr gelistet</span>' : ""}
     </div>
@@ -332,22 +336,43 @@ function renderCard(l) {
     ${kiBlock}
     <div class="card-footer">
       <span>Zuerst gesehen: ${formatDate(l.erstgesehen)}${distanceText ? " · " + escapeHtml(distanceText) : ""}</span>
-      <span>${abweichung && einschaetzung.abweichung_pct !== undefined ? abweichung : ""}</span>
+      <span>${abweichung && einschaetzung.abweichung_pct !== undefined ? escapeHtml(abweichung) : ""}</span>
     </div>
     <button type="button" class="expose-btn" data-expose-id="${escapeHtml(String(l.id))}">📄 Exposé erstellen</button>
   `;
   return el;
 }
 
+// escapeHtml() neutralisiert nur HTML-Metazeichen, keine gefaehrlichen URL-
+// Schemata - ein "javascript:"-Link wuerde trotz korrektem Escaping beim
+// Klick ausgefuehrt. Nur http(s)-Links durchlassen, alles andere auf "#".
+function safeUrl(url) {
+  return typeof url === "string" && /^https?:\/\//i.test(url) ? url : "#";
+}
+
 function escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str;
-  return div.innerHTML;
+  // innerHTML-Serialisierung escaped &, < und > fuer Text-Knoten, aber NICHT
+  // Anführungszeichen (die sind nur in Attribut-Werten gefaehrlich) - diese
+  // Funktion wird aber auch fuer href/class/data-Attribute genutzt, also
+  // zusaetzlich " und ' escapen, damit sie ueberall sicher ist.
+  return div.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 // Schneidet einen Text auf das letzte vollstaendige Satzende zurueck - die
 // KI-Einschaetzung kann durch das max_tokens-Limit mitten im Satz enden,
 // was in einem an Externe verschickten Dokument unprofessionell wirkt.
+// Kuerzt an der letzten Wortgrenze statt hart nach Zeichenanzahl - ein
+// mitten im Wort abgeschnittener Titel wirkt in einem an Externe
+// versendeten Dokument unprofessionell.
+function trimToWordBoundary(text, maxLen) {
+  if (!text || text.length <= maxLen) return text || "";
+  const truncated = text.slice(0, maxLen);
+  const lastSpace = truncated.lastIndexOf(" ");
+  return (lastSpace > maxLen * 0.6 ? truncated.slice(0, lastSpace) : truncated) + "…";
+}
+
 function trimToLastSentence(text) {
   const trimmed = (text || "").trim();
   const match = trimmed.match(/^[\s\S]*[.!?](?=\s|$)/);
@@ -463,7 +488,16 @@ function buildExposeHtml(l) {
     width: 210mm;
     min-height: 297mm;
     padding: 14mm 16mm 12mm;
-    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Footer wird per margin-top:auto ans Ende gedrueckt statt absolut
+     positioniert - bei ungewoehnlich langem Inhalt (langer Titel + langer
+     KI-Text) waechst die Seite dann einfach nach unten (und wuerde beim
+     Drucken sauber auf Seite 2 umbrechen) statt dass der Footer den
+     Disclaimer/Content ueberlappt. */
+  .page > :last-child {
+    margin-top: auto;
   }
   .head {
     display: flex;
@@ -667,10 +701,6 @@ function buildExposeHtml(l) {
   }
 
   footer {
-    position: absolute;
-    bottom: 10mm;
-    left: 16mm;
-    right: 16mm;
     border-top: 1px solid #e7dfd2;
     padding-top: 8px;
     display: flex;
@@ -717,7 +747,7 @@ function buildExposeHtml(l) {
   <div class="head">
     <div>
       <p class="eyebrow">${esc((l.bundesland || l.ort || "Deutschland").toUpperCase())} · ${esc(objektart.toUpperCase())} · VERTRAULICH</p>
-      <h1>${esc((l.title || objektart).slice(0, 110))}</h1>
+      <h1>${esc(trimToWordBoundary(l.title || objektart, 110))}</h1>
       <p class="intro">${esc(beschreibung)}</p>
     </div>
     <img class="logo" src="data:image/png;base64,${LOGO_BASE64}" alt="Mayer Consulting Logo">

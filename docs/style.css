@@ -6,10 +6,14 @@
   --muted: #6b6862;
   --border: #e3e0d9;
   --accent: #2f6d4f;
+  --accent-text: #2f6d4f;
   --guenstig: #2f6d4f;
   --im_rahmen: #8a6d1d;
   --teuer: #a13c3c;
-  --unknown: #8a8680;
+  --teuer-text: #a13c3c;
+  /* #8a8680 hatte mit weisser Badge-Schrift nur ~3.6:1 Kontrast (WCAG AA
+     verlangt 4.5:1 fuer Fliesstext) - abgedunkelt auf ~5.6:1. */
+  --unknown: #6b6862;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,10 +23,24 @@
     --text: #efece6;
     --muted: #a39d92;
     --border: #38352f;
+    /* --teuer (#a13c3c) auf dunklem Grund hat nur ~2.8:1 Kontrast (WCAG AA
+       verlangt 4.5:1) - fuer Fliesstext (radius-hint) eine hellere Variante. */
+    --teuer-text: #e08383;
+    /* --accent (#2f6d4f) als TEXTFARBE auf dunklem Grund hat nur ~2.9:1
+       Kontrast (als Hintergrund mit weisser Schrift ist es dagegen ok, das
+       bleibt unveraendert) - fuer Text (Exposé-Button, Hover-States) eine
+       hellere Variante. */
+    --accent-text: #4a9c73;
   }
 }
 
 * { box-sizing: border-box; }
+
+/* Browser-Default fuer [hidden] wird sonst von jeder Klassenregel mit einem
+   eigenen "display" ueberstimmt (gleiche Spezifitaet, Autor- vor UA-Regel) -
+   ohne das hier bleiben z.B. der Radius-Slider und der "Weitere laden"-
+   Button trotz hidden-Attribut sichtbar. */
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -240,7 +258,7 @@ body {
   margin: -6px auto 0;
   padding: 0 20px;
   font-size: 0.8rem;
-  color: var(--teuer);
+  color: var(--teuer-text);
 }
 
 #resetFilters {
@@ -299,7 +317,7 @@ body {
 }
 
 .card-title:hover {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .card-loc {
@@ -389,7 +407,7 @@ body {
   border: 1px solid var(--accent);
   border-radius: 8px;
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-text);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
@@ -417,7 +435,7 @@ body {
 
 .load-more:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .empty {

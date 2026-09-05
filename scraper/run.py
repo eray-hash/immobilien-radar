@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import json
 import os
+import re
 from datetime import datetime, timezone
 
 from . import ai_assessment, config, scoring
@@ -8,6 +11,29 @@ from .kleinanzeigen import fetch_detail, fetch_search_results
 
 RETRYABLE_KI_STATUS = {"kein_api_key", "fehler"}
 MAX_KI_RETRIES_PER_RUN = 100
+
+# robots.txt erlaubt pro Kategorie nur 5 Ergebnisseiten (~135 Treffer) - bei
+# einem groesseren Archiv (mehrere Tausend Inserate) passt an einem einzelnen
+# Tag bei weitem nicht jedes bekannte Inserat in dieses Fenster, auch wenn es
+# auf kleinanzeigen.de weiterhin aktiv ist (es rutscht in der Relevanz-/
+# Datumssortierung nur unter Seite 5). Ein Inserat erst nach mehreren
+# aufeinanderfolgenden Läufen ohne Sichtung als "nicht mehr gelistet" werten,
+# statt schon beim ersten Ausbleiben - sonst wandert der Grossteil des
+# Archivs binnen weniger Tage faelschlich auf "verschwunden".
+MIN_MISSES_BEFORE_DELISTING = 3
+
+# "Gesucht"/Ankauf-Anzeigen sind keine Verkaufsangebote, tauchen aber in
+# Kaufen-Kategorien auf (haeufig als Agentur-Massenanzeige, z.B. dieselbe
+# "Wir suchen Baugrundstuecke..."-Anzeige dutzendfach) und verzerren sowohl
+# das Angebot als auch die Preis-Vergleichsbasis in scoring.py.
+_GESUCHT_AD_RE = re.compile(
+    r"\b(wir suchen|wir kaufen|ankauf|grundst[üu]cksankauf|immobilienankauf)\b",
+    re.IGNORECASE,
+)
+
+
+def _ist_gesucht_anzeige(title: str | None) -> bool:
+    return bool(title) and _GESUCHT_AD_RE.search(title) is not None
 
 
 def _now() -> str:
@@ -51,6 +77,9 @@ def main() -> None:
         print(f"  {len(cards)} Treffer (alle Anbieter)")
 
         for card in cards:
+            if _ist_gesucht_anzeige(card.get("title")):
+                continue
+
             adid = card["id"]
             seen_ids.add(adid)
 
@@ -84,11 +113,34 @@ def main() -> None:
 
         _save(existing, now)
 
-    for adid, listing in existing.items():
-        if adid not in seen_ids:
-            listing["status"] = "nicht_mehr_in_trefferliste"
-        else:
-            listing.pop("status", None)
+    # Sicherheitsnetz gegen falsche Massen-Delistings: wenn in diesem Lauf nur
+    # ein winziger Bruchteil der bekannten Inserate wiedergefunden wurde,
+    # deutet das auf einen Scraping-Fehler hin (IP-Block, kaputter Parser nach
+    # einem Website-Relaunch, ...) statt auf einen echten Markteinbruch -
+    # genau das ist schon einmal passiert und hat den ganzen Datenbestand
+    # faelschlich als "nicht mehr gelistet" markiert. In diesem Fall lieber
+    # nichts markieren als falsch alles.
+    min_erwartet = max(5, len(existing) * 0.1)
+    if existing and len(seen_ids) < min_erwartet:
+        print(
+            f"WARNUNG: Nur {len(seen_ids)} von {len(existing)} bekannten Inseraten in diesem Lauf "
+            f"gesehen (erwartet mind. {min_erwartet:.0f}) - vermutlich ein Scraping-Fehler. "
+            "Ueberspringe das Markieren als 'nicht mehr gelistet'."
+        )
+    else:
+        for adid, listing in existing.items():
+            if adid in seen_ids:
+                listing["nicht_gesehen_seit_laeufen"] = 0
+                listing.pop("status", None)
+            else:
+                misses = listing.get("nicht_gesehen_seit_laeufen", 0) + 1
+                listing["nicht_gesehen_seit_laeufen"] = misses
+                if misses >= MIN_MISSES_BEFORE_DELISTING:
+                    listing["status"] = "nicht_mehr_in_trefferliste"
+                else:
+                    # noch nicht oft genug in Folge verpasst - als weiter aktiv
+                    # werten statt vorschnell auf "verschwunden" zu setzen
+                    listing.pop("status", None)
 
     _save(existing, now)
     print(f"Fertig: {len(existing)} Inserate in {config.OUTPUT_FILE}")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import statistics
 
 from . import config
@@ -9,9 +10,17 @@ def classify_renovation(title: str, beschreibung: str) -> str:
     text = f"{title or ''} {beschreibung or ''}".lower()
     # Reihenfolge wichtig: spezifischere/negativere Treffer zuerst prüfen,
     # damit "modernisierungsbedürftig" nicht als "modernisiert" erkannt wird.
+    # Substring-Vergleich mit einer gezielten Ausnahme: "saniert" soll nicht
+    # mitten in "unsaniert" treffen, ABER sehr wohl in "vollsaniert",
+    # "teilsaniert", "grundsaniert", "durchsaniert" etc. - eine allgemeine
+    # fuehrende Wortgrenze (\b) hatte genau diese haeufigen zusammengesetzten
+    # Formulierungen faelschlich mitblockiert. Negatives Lookbehind gezielt
+    # nur fuer das Praefix "un" statt einer generellen Wortgrenze.
+    # Negierte Formulierungen wie "nicht renoviert" tauchen als eigene Phrasen
+    # in RENOVATION_KEYWORDS["sanierungsbeduerftig"] auf (s. config.py).
     for label in ["sanierungsbeduerftig", "neubau", "frisch_saniert", "saniert_modernisiert"]:
         for kw in config.RENOVATION_KEYWORDS[label]:
-            if kw in text:
+            if re.search(r"(?<!un)" + re.escape(kw), text):
                 return label
     return "unbekannt"
 

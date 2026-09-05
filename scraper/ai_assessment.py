@@ -45,6 +45,12 @@ def assess_listing(listing: dict) -> dict:
         or listing.get("flaeche_m2_sonstige")
         or listing.get("grundstuecksflaeche_m2")
     )
+    # Bei der ersten Einschaetzung eines neuen Inserats laeuft attach_price_
+    # assessments() (in run.py, welches preis_pro_m2 berechnet) erst NACH
+    # diesem Aufruf - ohne Fallback waere "Preis pro m2" hier immer None.
+    preis_pro_m2 = listing.get("preis_pro_m2")
+    if preis_pro_m2 is None and listing.get("preis_eur") and flaeche:
+        preis_pro_m2 = round(listing["preis_eur"] / flaeche, 2)
     facts = "\n".join(
         [
             f"Objekttyp: {listing.get('objekt_typ_label', listing.get('objekt_typ'))}",
@@ -52,7 +58,7 @@ def assess_listing(listing: dict) -> dict:
             f"Ort: {listing.get('plz')} {listing.get('ort')}",
             f"Preis: {listing.get('preis_eur')} EUR",
             f"Flaeche: {flaeche} m2",
-            f"Preis pro m2: {listing.get('preis_pro_m2')} EUR",
+            f"Preis pro m2: {preis_pro_m2} EUR",
             f"Baujahr: {listing.get('baujahr')}",
             f"Anbietertyp: {listing.get('anbieter_typ')}",
         ]
