@@ -23,6 +23,7 @@ const KI_STATUS_LABELS = {
   zu_wenig_text: "KI-Einschätzung: zu wenig Textinformation im Inserat",
   kein_api_key: "KI-Einschätzung nicht verfügbar (kein API-Key konfiguriert)",
   fehler: "KI-Einschätzung fehlgeschlagen",
+  deaktiviert: "KI-Einschätzung vorübergehend deaktiviert",
 };
 
 const EXPOSE_CONTACT = {

@@ -9,7 +9,7 @@ from . import ai_assessment, config, scoring
 from .kleinanzeigen import fetch_detail, fetch_search_results
 
 
-RETRYABLE_KI_STATUS = {"kein_api_key", "fehler"}
+RETRYABLE_KI_STATUS = {"kein_api_key", "fehler", "deaktiviert"}
 MAX_KI_RETRIES_PER_RUN = 100
 
 # robots.txt erlaubt pro Kategorie nur 5 Ergebnisseiten (~135 Treffer) - bei

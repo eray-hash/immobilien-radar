@@ -4,6 +4,13 @@ import os
 
 import anthropic
 
+# Temporaer deaktiviert (2026-09-14) - Kontowechsel auf neue Anthropic-
+# Console-Organisation/Kreditkarte steht noch aus, bis dahin sollen keine
+# weiteren API-Kosten entstehen. Zum Reaktivieren: auf True setzen, alte
+# "kein_api_key"/"fehler"/"deaktiviert"-Inserate werden dann automatisch
+# ueber den bestehenden Retry-Mechanismus in run.py nachbewertet.
+KI_ENABLED = False
+
 MIN_TEXT_LENGTH = 40
 MAX_TEXT_LENGTH = 1500
 MODEL = "claude-haiku-4-5"
@@ -32,6 +39,9 @@ def _client() -> anthropic.Anthropic | None:
 
 
 def assess_listing(listing: dict) -> dict:
+    if not KI_ENABLED:
+        return {"status": "deaktiviert"}
+
     beschreibung = (listing.get("beschreibung") or "").strip()
     if len(beschreibung) < MIN_TEXT_LENGTH:
         return {"status": "zu_wenig_text"}
