@@ -31,14 +31,24 @@
 <div id="filtersPanel" class="filters-panel collapsed">
   <section class="controls">
     <select id="sortField">
+      <option value="lukrativitaet_desc">Lukrativität absteigend</option>
       <option value="preis_pro_m2_asc">€/m² aufsteigend</option>
       <option value="preis_pro_m2_desc">€/m² absteigend</option>
       <option value="preis_asc">Preis aufsteigend</option>
       <option value="preis_desc">Preis absteigend</option>
       <option value="neu">Zuletzt gesehen</option>
     </select>
+    <select id="filterLukrativitaet">
+      <option value="">Alle Lukrativitäts-Einschätzungen</option>
+      <option value="sehr_interessant">Sehr interessant</option>
+      <option value="interessant">Interessant</option>
+      <option value="neutral">Neutral</option>
+      <option value="eher_unattraktiv">Eher unattraktiv</option>
+      <option value="unattraktiv">Unattraktiv</option>
+      <option value="zu_wenig_daten">Zu wenig Daten</option>
+    </select>
     <select id="filterEinschaetzung">
-      <option value="">Alle Einschätzungen</option>
+      <option value="">Alle Preiseinschätzungen</option>
       <option value="guenstig">Günstig</option>
       <option value="im_rahmen">Im Rahmen</option>
       <option value="teuer">Teuer</option>

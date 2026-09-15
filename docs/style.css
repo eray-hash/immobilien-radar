@@ -11,6 +11,7 @@
   --im_rahmen: #8a6d1d;
   --teuer: #a13c3c;
   --teuer-text: #a13c3c;
+  --luk-top: #1f5c3d;
   /* #8a8680 hatte mit weisser Badge-Schrift nur ~3.6:1 Kontrast (WCAG AA
      verlangt 4.5:1 fuer Fliesstext) - abgedunkelt auf ~5.6:1. */
   --unknown: #6b6862;
@@ -362,6 +363,57 @@ body {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--muted);
+}
+
+.badge.luk-sehr_interessant { background: var(--luk-top); }
+.badge.luk-interessant { background: var(--guenstig); }
+.badge.luk-neutral { background: var(--unknown); }
+.badge.luk-eher_unattraktiv { background: var(--im_rahmen); }
+.badge.luk-unattraktiv { background: var(--teuer); }
+.badge.luk-zu_wenig_daten {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+}
+
+.card-luk {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.card-luk li {
+  padding-left: 16px;
+  position: relative;
+}
+
+.card-luk .luk-chance {
+  color: var(--text);
+}
+
+.card-luk .luk-chance::before {
+  content: "+";
+  position: absolute;
+  left: 0;
+  font-weight: 700;
+  color: var(--guenstig);
+}
+
+.card-luk .luk-risiko {
+  color: var(--muted);
+}
+
+.card-luk .luk-risiko::before {
+  content: "–";
+  position: absolute;
+  left: 0;
+  font-weight: 700;
+  color: var(--teuer-text);
 }
 
 .card-desc {

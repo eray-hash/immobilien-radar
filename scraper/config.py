@@ -114,3 +114,34 @@ RENOVATION_KEYWORDS = {
         "nie modernisiert",
     ],
 }
+
+# Stichwörter für die kostenlose, regelbasierte Investment-Einschätzung
+# (scoring.attach_investment_score) - inhaltlich grob an die Risiko-/
+# Potenzialanalyse (Abschnitte 18/19) des Master-Prompts "Professionelle
+# Immobilienbewertung" angelehnt, aber bewusst nur auf Basis des frei
+# verfügbaren Inseratstexts (keine echten Unterlagen wie Grundbuch/
+# Mietverträge) und ohne KI-Aufruf, damit die Einschätzung nichts kostet.
+RISK_KEYWORDS = {
+    "erbbaurecht": ["erbbaurecht", "erbpacht"],
+    "zwangsversteigerung": ["zwangsversteigerung", "teilungsversteigerung"],
+    "denkmalschutz": ["denkmalschutz", "denkmalgeschützt"],
+    "altlasten": ["altlast", "kontamin", "bodenbelastung"],
+    "leerstand": ["leerstand", "unvermietet", "steht leer"],
+    "mietrueckstand": ["mietrückstand", "mietschulden"],
+    "bauschaden": ["bauschaden", "baumangel", "schimmel", "hausschwamm", "feuchtigkeitsschaden"],
+    "belegungsbindung": ["sozialbindung", "belegungsbindung", "mietpreisbindung"],
+    "eigentuemerstruktur": ["erbengemeinschaft", "mehrere eigentümer"],
+}
+
+POTENTIAL_KEYWORDS = {
+    "baurecht_gesichert": [
+        "baugenehmigung liegt vor",
+        "baugenehmigung vorhanden",
+        "rechtskräftige baugenehmigung",
+    ],
+    "ausbaureserve": ["ausbaufähig", "ausbaureserve"],
+    "teilbar": ["teilbar", "aufteilbar", "weg-teilung"],
+    "erweiterung": ["anbau möglich", "aufstockung möglich", "erweiterbar"],
+    "nachverdichtung": ["nachverdichtung", "neubaugebiet", "entwicklungsgebiet"],
+    "stabil_vermietet": ["langjährig vermietet", "unbefristet vermietet", "seit jahren vermietet"],
+}

@@ -54,6 +54,7 @@ def _save(existing: dict, now: str) -> None:
     # KI-Einschätzung bereits bezahlten) Inserate verwirft.
     all_listings = list(existing.values())
     scoring.attach_price_assessments(all_listings)
+    scoring.attach_investment_score(all_listings)
 
     os.makedirs(os.path.dirname(config.OUTPUT_FILE), exist_ok=True)
     with open(config.OUTPUT_FILE, "w", encoding="utf-8") as f:

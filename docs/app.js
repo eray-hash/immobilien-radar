@@ -19,6 +19,15 @@ const ANBIETER_LABELS = {
   gewerblich: "Gewerblich",
 };
 
+const LUKRATIVITAET_LABELS = {
+  sehr_interessant: "Sehr interessant",
+  interessant: "Interessant",
+  neutral: "Neutral",
+  eher_unattraktiv: "Eher unattraktiv",
+  unattraktiv: "Unattraktiv",
+  zu_wenig_daten: "Zu wenig Daten",
+};
+
 const KI_STATUS_LABELS = {
   zu_wenig_text: "KI-Einschätzung: zu wenig Textinformation im Inserat",
   kein_api_key: "KI-Einschätzung nicht verfügbar (kein API-Key konfiguriert)",
@@ -121,8 +130,11 @@ function matchesSearch(listing, query) {
 
 function sortListings(listings, mode) {
   const withPpm = (l) => (l.preis_pro_m2 === undefined || l.preis_pro_m2 === null ? Infinity : l.preis_pro_m2);
+  const lukScore = (l) => l.lukrativitaet?.score ?? -Infinity;
   const copy = [...listings];
   switch (mode) {
+    case "lukrativitaet_desc":
+      return copy.sort((a, b) => lukScore(b) - lukScore(a));
     case "preis_pro_m2_asc":
       return copy.sort((a, b) => withPpm(a) - withPpm(b));
     case "preis_pro_m2_desc":
@@ -170,6 +182,7 @@ function render() {
   const query = document.getElementById("search").value.trim();
   const sortMode = document.getElementById("sortField").value;
   const einschaetzungFilter = document.getElementById("filterEinschaetzung").value;
+  const lukrativitaetFilter = document.getElementById("filterLukrativitaet").value;
   const bundeslandFilter = document.getElementById("filterBundesland").value;
   const objektTypFilter = document.getElementById("filterObjektTyp").value;
   const anbieterFilter = document.getElementById("filterAnbieter").value;
@@ -202,6 +215,9 @@ function render() {
   let listings = allListings.filter((l) => matchesSearch(l, query));
   if (einschaetzungFilter) {
     listings = listings.filter((l) => l.preis_einschaetzung?.label === einschaetzungFilter);
+  }
+  if (lukrativitaetFilter) {
+    listings = listings.filter((l) => l.lukrativitaet?.label === lukrativitaetFilter);
   }
   if (bundeslandFilter) {
     listings = listings.filter((l) => l.bundesland === bundeslandFilter);
@@ -241,6 +257,7 @@ function render() {
 
   const activeFilterCount = [
     einschaetzungFilter,
+    lukrativitaetFilter,
     bundeslandFilter,
     objektTypFilter,
     anbieterFilter,
@@ -316,6 +333,16 @@ function renderCard(l) {
       ? `<p class="card-ki card-ki-muted">${escapeHtml(KI_STATUS_LABELS[ki.status] || ki.status)}</p>`
       : "";
 
+  const lukrativitaet = l.lukrativitaet || {};
+  const lukLabel = LUKRATIVITAET_LABELS[lukrativitaet.label] || lukrativitaet.label || "";
+  const lukPunkte = [...(lukrativitaet.chancen || []), ...(lukrativitaet.risiken || [])];
+  const lukBlock = lukPunkte.length
+    ? `<ul class="card-luk">
+        ${(lukrativitaet.chancen || []).map((c) => `<li class="luk-chance">${escapeHtml(c)}</li>`).join("")}
+        ${(lukrativitaet.risiken || []).map((r) => `<li class="luk-risiko">${escapeHtml(r)}</li>`).join("")}
+      </ul>`
+    : "";
+
   el.innerHTML = `
     <a class="card-title" href="${escapeHtml(safeUrl(l.url))}" target="_blank" rel="noopener">${escapeHtml(l.title || "Ohne Titel")}</a>
     <div class="card-loc">${escapeHtml(l.plz || "")} ${escapeHtml(l.ort || "")}${l.bundesland ? " · " + escapeHtml(l.bundesland) : ""}</div>
@@ -326,6 +353,7 @@ function renderCard(l) {
       <span>${l.baujahr ? "Baujahr " + escapeHtml(String(l.baujahr)) : "Baujahr unbekannt"}</span>
     </div>
     <div class="badges">
+      ${lukLabel ? `<span class="badge luk-${escapeHtml(lukrativitaet.label || "")}">${escapeHtml(lukLabel)}</span>` : ""}
       <span class="badge outline objekt-typ">${escapeHtml(l.objekt_typ_label || l.objekt_typ || "Objekttyp unbekannt")}</span>
       <span class="badge anbieter-${escapeHtml(l.anbieter_typ || "")}">${escapeHtml(ANBIETER_LABELS[l.anbieter_typ] || "Anbieter unbekannt")}</span>
       <span class="badge ${escapeHtml(einschaetzung.label || "")}" title="${escapeHtml(abweichung)}">${escapeHtml(einschaetzungLabel)}</span>
@@ -334,6 +362,7 @@ function renderCard(l) {
       ${l.status === "nicht_mehr_in_trefferliste" ? '<span class="badge outline">nicht mehr gelistet</span>' : ""}
     </div>
     <p class="card-desc">${escapeHtml((l.beschreibung || "").slice(0, 220))}${(l.beschreibung || "").length > 220 ? "…" : ""}</p>
+    ${lukBlock}
     ${kiBlock}
     <div class="card-footer">
       <span>Zuerst gesehen: ${formatDate(l.erstgesehen)}${distanceText ? " · " + escapeHtml(distanceText) : ""}</span>
@@ -831,6 +860,7 @@ const liveInputs = ["search", "preisMin", "preisMax", "flaecheMin", "flaecheMax"
 const changeInputs = [
   "sortField",
   "filterEinschaetzung",
+  "filterLukrativitaet",
   "filterBundesland",
   "filterObjektTyp",
   "filterAnbieter",
@@ -868,6 +898,7 @@ document.getElementById("resetFilters").addEventListener("click", () => {
   document.getElementById("radiusKm").value = 50;
   document.getElementById("radiusKmLabel").textContent = "50 km";
   document.getElementById("filterEinschaetzung").value = "";
+  document.getElementById("filterLukrativitaet").value = "";
   document.getElementById("filterBundesland").value = "";
   document.getElementById("filterObjektTyp").value = "";
   document.getElementById("filterAnbieter").value = "";
