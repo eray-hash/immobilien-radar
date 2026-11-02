@@ -22,6 +22,18 @@ MAX_KI_RETRIES_PER_RUN = 100
 # Archivs binnen weniger Tage faelschlich auf "verschwunden".
 MIN_MISSES_BEFORE_DELISTING = 3
 
+# docs/data/listings.json wird direkt eingecheckt (kein Git LFS - GitHub Pages
+# kann LFS-Dateien nicht ausliefern, es wuerde nur der LFS-Pointer statt der
+# echten Daten live gehen). Ohne Bereinigung waechst die Datei unbegrenzt
+# weiter, bis sie GitHubs harte 100-MB-Push-Grenze reisst - genau das ist am
+# 2026-10-09 passiert: seitdem ist jeder einzelne taegliche Push fehlgeschlagen
+# ("docs/data/listings.json is 101.71 MB; this exceeds GitHub's file size
+# limit"), die Seite zeigte wochenlang unbemerkt veraltete Daten. Laengst
+# verschwundene Inserate (alle hier gefundenen waren schon 23-74 Tage alt)
+# tragen danach keinen Mehrwert mehr - nach 14 Tagen aus dem aktiven Datensatz
+# entfernen statt fuer immer mitzuschleppen.
+PRUNE_GONE_AFTER_DAYS = 14
+
 # "Gesucht"/Ankauf-Anzeigen sind keine Verkaufsangebote, tauchen aber in
 # Kaufen-Kategorien auf (haeufig als Agentur-Massenanzeige, z.B. dieselbe
 # "Wir suchen Baugrundstuecke..."-Anzeige dutzendfach) und verzerren sowohl
@@ -38,6 +50,25 @@ def _ist_gesucht_anzeige(title: str | None) -> bool:
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _prune_long_gone(existing: dict, now_dt: datetime) -> int:
+    to_remove = []
+    for adid, listing in existing.items():
+        if listing.get("status") != "nicht_mehr_in_trefferliste":
+            continue
+        ts = listing.get("zuletzt_gesehen")
+        if not ts:
+            continue
+        try:
+            seen_dt = datetime.fromisoformat(ts)
+        except ValueError:
+            continue
+        if (now_dt - seen_dt).days >= PRUNE_GONE_AFTER_DAYS:
+            to_remove.append(adid)
+    for adid in to_remove:
+        del existing[adid]
+    return len(to_remove)
 
 
 def _load_existing() -> dict:
@@ -142,6 +173,11 @@ def main() -> None:
                     # noch nicht oft genug in Folge verpasst - als weiter aktiv
                     # werten statt vorschnell auf "verschwunden" zu setzen
                     listing.pop("status", None)
+
+    now_dt = datetime.fromisoformat(now)
+    pruned = _prune_long_gone(existing, now_dt)
+    if pruned:
+        print(f"{pruned} seit über {PRUNE_GONE_AFTER_DAYS} Tagen verschwundene Inserate entfernt.")
 
     _save(existing, now)
     print(f"Fertig: {len(existing)} Inserate in {config.OUTPUT_FILE}")
