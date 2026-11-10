@@ -68,7 +68,27 @@ async function load() {
     `${data.anzahl} Inserate · zuletzt aktualisiert ${formatDate(data.aktualisiert_am)}`;
   populateBundeslandFilter();
   populateObjektTypFilter();
+  loadMarktTrend();
   render();
+}
+
+// Separat statt in Promise.all mit den anderen Fetches - das Fehlen dieser rein
+// informativen Datei darf das Laden der eigentlichen Inserate nicht blockieren.
+async function loadMarktTrend() {
+  try {
+    const res = await fetch("data/vdp_index.json", { cache: "no-store" });
+    if (!res.ok) return;
+    const vdp = await res.json();
+    const fmtPct = (n) =>
+      `${n >= 0 ? "+" : ""}${n.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
+    const el = document.getElementById("marktTrend");
+    el.textContent =
+      `Markttrend ${vdp.segment} (vdp, ${vdp.stand}): Kaufpreise ${fmtPct(vdp.kaufpreis_vorjahr_prozent)} ggü. Vorjahr · ` +
+      `Neuvertragsmieten ${fmtPct(vdp.neuvertragsmieten_vorjahr_prozent)} ggü. Vorjahr`;
+    el.hidden = false;
+  } catch {
+    // Keine Marktdaten verfuegbar - Zeile bleibt einfach ausgeblendet.
+  }
 }
 
 // Luftlinien-Entfernung zwischen zwei Koordinaten (Haversine-Formel), in km.

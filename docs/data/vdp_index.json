@@ -1,0 +1,8 @@
+{
+  "quelle": "vdp-Immobilienpreisindex (Verband deutscher Pfandbriefbanken)",
+  "quelle_url": "https://www.pfandbrief.de/vdp-immobilienpreisindex/",
+  "stand": "Q3 2026",
+  "segment": "Mehrfamilienhäuser",
+  "kaufpreis_vorjahr_prozent": 0.5,
+  "neuvertragsmieten_vorjahr_prozent": 3.5
+}

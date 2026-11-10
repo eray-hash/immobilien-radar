@@ -72,6 +72,12 @@ body {
   color: var(--muted);
 }
 
+.markt-trend {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
 .topbar-row {
   display: flex;
   justify-content: space-between;
