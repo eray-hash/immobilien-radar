@@ -237,6 +237,14 @@ body {
   accent-color: var(--accent);
 }
 
+.radius-group.inactive {
+  opacity: 0.5;
+}
+
+.radius-group.inactive input[type="range"] {
+  cursor: not-allowed;
+}
+
 #radiusKmLabel {
   font-size: 0.85rem;
   color: var(--text);

@@ -195,10 +195,16 @@ function render() {
   const flaecheMax = numOrNull("flaecheMax");
 
   const radiusGroup = document.getElementById("radiusGroup");
+  const radiusKmInput = document.getElementById("radiusKm");
   const radiusHint = document.getElementById("radiusHint");
   const isPlzQuery = /^\d{5}$/.test(ortQuery);
   activeOrigin = null;
-  radiusGroup.hidden = true;
+  // Regler bleibt immer sichtbar (nur ausgegraut/deaktiviert ohne Standort) -
+  // vorher komplett versteckt, was mehrfach dazu gefuehrt hat, dass er als
+  // "kaputt"/"verschwunden" gemeldet wurde, obwohl man nur noch nichts
+  // eingegeben hatte.
+  radiusGroup.classList.add("inactive");
+  radiusKmInput.disabled = true;
   radiusHint.hidden = true;
 
   if (ortQuery) {
@@ -214,7 +220,8 @@ function render() {
 
     if (coords) {
       activeOrigin = { plz: originPlz, lat: coords[0], lon: coords[1] };
-      radiusGroup.hidden = false;
+      radiusGroup.classList.remove("inactive");
+      radiusKmInput.disabled = false;
     } else if (isPlzQuery) {
       radiusHint.hidden = false;
       radiusHint.textContent = `Keine Koordinaten für PLZ ${ortQuery} gefunden — normale Textsuche wird verwendet.`;
