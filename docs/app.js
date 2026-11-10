@@ -201,12 +201,21 @@ function render() {
   radiusGroup.hidden = true;
   radiusHint.hidden = true;
 
-  if (isPlzQuery) {
-    const coords = plzCoords[ortQuery];
+  if (ortQuery) {
+    // plz_coords.json kennt nur PLZ->Koordinaten, keine Ortsnamen. Bei einer
+    // Texteingabe wie "Essen" statt einer PLZ daher die PLZ eines passenden
+    // Inserats (gleiche Wortgrenzen-Logik wie der Orts-Filter) als Ankerpunkt
+    // fuer die Umkreissuche verwenden - sonst bleibt der Regler bei jeder
+    // Ortsnamen-Eingabe unsichtbar, obwohl das Feld "PLZ oder Ort" verspricht.
+    const originPlz = isPlzQuery
+      ? ortQuery
+      : allListings.find((l) => l.plz && plzCoords[l.plz] && matchesOrt(l, ortQuery))?.plz;
+    const coords = originPlz ? plzCoords[originPlz] : null;
+
     if (coords) {
-      activeOrigin = { plz: ortQuery, lat: coords[0], lon: coords[1] };
+      activeOrigin = { plz: originPlz, lat: coords[0], lon: coords[1] };
       radiusGroup.hidden = false;
-    } else {
+    } else if (isPlzQuery) {
       radiusHint.hidden = false;
       radiusHint.textContent = `Keine Koordinaten für PLZ ${ortQuery} gefunden — normale Textsuche wird verwendet.`;
     }
