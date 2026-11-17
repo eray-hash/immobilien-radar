@@ -66,6 +66,7 @@ async function load() {
   plzCoords = await coordsRes.json();
   document.getElementById("meta").textContent =
     `${data.anzahl} Inserate · zuletzt aktualisiert ${formatDate(data.aktualisiert_am)}`;
+  populateStaticFilters();
   populateBundeslandFilter();
   populateObjektTypFilter();
   loadMarktTrend();
@@ -102,29 +103,94 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function populateBundeslandFilter() {
-  const select = document.getElementById("filterBundesland");
-  const values = [...new Set(allListings.map((l) => l.bundesland).filter(Boolean))].sort();
-  for (const v of values) {
-    const opt = document.createElement("option");
-    opt.value = v;
-    opt.textContent = v;
-    select.appendChild(opt);
+// Mehrfachauswahl-Filter: <details> mit Checkbox-Liste statt <select>. Keine
+// Auswahl = "alle" (Filter inaktiv). Texte laufen ausschliesslich ueber
+// textContent/Properties, nie ueber innerHTML - die Optionen (Bundesland,
+// Objekttyp) stammen aus gescrapten Daten.
+function buildMultiSelect(id, options) {
+  const el = document.getElementById(id);
+  el.innerHTML = "";
+  el.appendChild(document.createElement("summary"));
+  const panel = document.createElement("div");
+  panel.className = "multi-panel";
+  for (const [value, text] of options) {
+    const row = document.createElement("label");
+    row.className = "multi-option";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = value;
+    const span = document.createElement("span");
+    span.textContent = text;
+    row.append(cb, span);
+    panel.appendChild(row);
   }
+  el.appendChild(panel);
+  panel.addEventListener("change", () => {
+    updateMultiSummary(id);
+    render();
+  });
+  updateMultiSummary(id);
+}
+
+function selectedValues(id) {
+  return new Set([...document.querySelectorAll(`#${id} input:checked`)].map((cb) => cb.value));
+}
+
+function updateMultiSummary(id) {
+  const el = document.getElementById(id);
+  const checked = [...el.querySelectorAll("input:checked")];
+  const label = el.dataset.label;
+  let text = `${label}: alle`;
+  if (checked.length === 1) text = `${label}: ${checked[0].parentElement.textContent}`;
+  else if (checked.length > 1) text = `${label}: ${checked.length} gewählt`;
+  el.querySelector("summary").textContent = text;
+  el.classList.toggle("active", checked.length > 0);
+}
+
+function clearMultiSelect(id) {
+  document.querySelectorAll(`#${id} input:checked`).forEach((cb) => (cb.checked = false));
+  updateMultiSummary(id);
+}
+
+function matchesSelection(selected, value) {
+  return selected.size === 0 || selected.has(value);
+}
+
+const MULTI_FILTER_IDS = [
+  "filterLukrativitaet",
+  "filterEinschaetzung",
+  "filterObjektTyp",
+  "filterBundesland",
+  "filterAnbieter",
+];
+
+function populateStaticFilters() {
+  buildMultiSelect("filterLukrativitaet", Object.entries(LUKRATIVITAET_LABELS));
+  buildMultiSelect("filterEinschaetzung", [
+    ["guenstig", LABELS.guenstig],
+    ["im_rahmen", LABELS.im_rahmen],
+    ["teuer", LABELS.teuer],
+    ["zu_wenig_vergleichsdaten", LABELS.zu_wenig_vergleichsdaten],
+  ]);
+  buildMultiSelect("filterAnbieter", Object.entries(ANBIETER_LABELS));
+}
+
+function populateBundeslandFilter() {
+  const values = [...new Set(allListings.map((l) => l.bundesland).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, "de")
+  );
+  buildMultiSelect("filterBundesland", values.map((v) => [v, v]));
 }
 
 function populateObjektTypFilter() {
-  const select = document.getElementById("filterObjektTyp");
   const seen = new Map();
   for (const l of allListings) {
     if (l.objekt_typ) seen.set(l.objekt_typ, l.objekt_typ_label || l.objekt_typ);
   }
-  for (const [value, label] of [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1], "de"))) {
-    const opt = document.createElement("option");
-    opt.value = value;
-    opt.textContent = label;
-    select.appendChild(opt);
-  }
+  buildMultiSelect(
+    "filterObjektTyp",
+    [...seen.entries()].sort((a, b) => a[1].localeCompare(b[1], "de"))
+  );
 }
 
 function bestFlaeche(l) {
@@ -201,11 +267,11 @@ function numOrNull(id) {
 function render() {
   const query = document.getElementById("search").value.trim();
   const sortMode = document.getElementById("sortField").value;
-  const einschaetzungFilter = document.getElementById("filterEinschaetzung").value;
-  const lukrativitaetFilter = document.getElementById("filterLukrativitaet").value;
-  const bundeslandFilter = document.getElementById("filterBundesland").value;
-  const objektTypFilter = document.getElementById("filterObjektTyp").value;
-  const anbieterFilter = document.getElementById("filterAnbieter").value;
+  const einschaetzungFilter = selectedValues("filterEinschaetzung");
+  const lukrativitaetFilter = selectedValues("filterLukrativitaet");
+  const bundeslandFilter = selectedValues("filterBundesland");
+  const objektTypFilter = selectedValues("filterObjektTyp");
+  const anbieterFilter = selectedValues("filterAnbieter");
   const ortQuery = document.getElementById("filterOrt").value.trim();
   const hideGone = document.getElementById("hideGone").checked;
 
@@ -249,21 +315,14 @@ function render() {
   }
 
   let listings = allListings.filter((l) => matchesSearch(l, query));
-  if (einschaetzungFilter) {
-    listings = listings.filter((l) => l.preis_einschaetzung?.label === einschaetzungFilter);
-  }
-  if (lukrativitaetFilter) {
-    listings = listings.filter((l) => l.lukrativitaet?.label === lukrativitaetFilter);
-  }
-  if (bundeslandFilter) {
-    listings = listings.filter((l) => l.bundesland === bundeslandFilter);
-  }
-  if (objektTypFilter) {
-    listings = listings.filter((l) => l.objekt_typ === objektTypFilter);
-  }
-  if (anbieterFilter) {
-    listings = listings.filter((l) => l.anbieter_typ === anbieterFilter);
-  }
+  listings = listings.filter(
+    (l) =>
+      matchesSelection(einschaetzungFilter, l.preis_einschaetzung?.label) &&
+      matchesSelection(lukrativitaetFilter, l.lukrativitaet?.label) &&
+      matchesSelection(bundeslandFilter, l.bundesland) &&
+      matchesSelection(objektTypFilter, l.objekt_typ) &&
+      matchesSelection(anbieterFilter, l.anbieter_typ)
+  );
   if (activeOrigin) {
     const radiusKm = Number(document.getElementById("radiusKm").value);
     listings = listings.filter((l) => {
@@ -292,11 +351,11 @@ function render() {
       : `${listings.length} von ${allListings.length} Inseraten angezeigt`;
 
   const activeFilterCount = [
-    einschaetzungFilter,
-    lukrativitaetFilter,
-    bundeslandFilter,
-    objektTypFilter,
-    anbieterFilter,
+    einschaetzungFilter.size > 0,
+    lukrativitaetFilter.size > 0,
+    bundeslandFilter.size > 0,
+    objektTypFilter.size > 0,
+    anbieterFilter.size > 0,
     hideGone,
     preisMin !== null,
     preisMax !== null,
@@ -893,17 +952,26 @@ function debounce(fn, waitMs) {
 const debouncedRender = debounce(render, 200);
 
 const liveInputs = ["search", "preisMin", "preisMax", "flaecheMin", "flaecheMax", "filterOrt", "radiusKm"];
-const changeInputs = [
-  "sortField",
-  "filterEinschaetzung",
-  "filterLukrativitaet",
-  "filterBundesland",
-  "filterObjektTyp",
-  "filterAnbieter",
-  "hideGone",
-];
+const changeInputs = ["sortField", "hideGone"];
 liveInputs.forEach((id) => document.getElementById(id).addEventListener("input", debouncedRender));
 changeInputs.forEach((id) => document.getElementById(id).addEventListener("change", render));
+
+// Offenes Mehrfachauswahl-Menue schliessen: Klick daneben, Escape, oder wenn
+// ein anderes Menue geoeffnet wird.
+document.addEventListener("click", (e) => {
+  document.querySelectorAll("details.multi[open]").forEach((d) => {
+    if (!d.contains(e.target)) d.open = false;
+  });
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") document.querySelectorAll("details.multi[open]").forEach((d) => (d.open = false));
+});
+MULTI_FILTER_IDS.forEach((id) =>
+  document.getElementById(id).addEventListener("toggle", (e) => {
+    if (!e.target.open) return;
+    MULTI_FILTER_IDS.filter((other) => other !== id).forEach((other) => (document.getElementById(other).open = false));
+  })
+);
 
 // Event-Delegation statt eines addEventListener pro Karte - bei Tausenden
 // Karten pro Render sonst unnoetig teuer.
@@ -933,11 +1001,7 @@ document.getElementById("resetFilters").addEventListener("click", () => {
   liveInputs.filter((id) => id !== "radiusKm").forEach((id) => (document.getElementById(id).value = ""));
   document.getElementById("radiusKm").value = 50;
   document.getElementById("radiusKmLabel").textContent = "50 km";
-  document.getElementById("filterEinschaetzung").value = "";
-  document.getElementById("filterLukrativitaet").value = "";
-  document.getElementById("filterBundesland").value = "";
-  document.getElementById("filterObjektTyp").value = "";
-  document.getElementById("filterAnbieter").value = "";
+  MULTI_FILTER_IDS.forEach(clearMultiSelect);
   document.getElementById("hideGone").checked = false;
   render();
 });

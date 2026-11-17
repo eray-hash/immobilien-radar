@@ -45,33 +45,11 @@
       <option value="preis_desc">Preis absteigend</option>
       <option value="neu">Zuletzt gesehen</option>
     </select>
-    <select id="filterLukrativitaet">
-      <option value="">Alle Lukrativitäts-Einschätzungen</option>
-      <option value="sehr_interessant">Sehr interessant</option>
-      <option value="interessant">Interessant</option>
-      <option value="neutral">Neutral</option>
-      <option value="eher_unattraktiv">Eher unattraktiv</option>
-      <option value="unattraktiv">Unattraktiv</option>
-      <option value="zu_wenig_daten">Zu wenig Daten</option>
-    </select>
-    <select id="filterEinschaetzung">
-      <option value="">Alle Preiseinschätzungen</option>
-      <option value="guenstig">Günstig</option>
-      <option value="im_rahmen">Im Rahmen</option>
-      <option value="teuer">Teuer</option>
-      <option value="zu_wenig_vergleichsdaten">Zu wenig Vergleichsdaten</option>
-    </select>
-    <select id="filterObjektTyp">
-      <option value="">Alle Objekttypen</option>
-    </select>
-    <select id="filterBundesland">
-      <option value="">Alle Bundesländer</option>
-    </select>
-    <select id="filterAnbieter">
-      <option value="">Privat + Gewerblich</option>
-      <option value="privat">Nur Privat</option>
-      <option value="gewerblich">Nur Gewerblich</option>
-    </select>
+    <details class="multi" id="filterLukrativitaet" data-label="Lukrativität"></details>
+    <details class="multi" id="filterEinschaetzung" data-label="Preiseinschätzung"></details>
+    <details class="multi" id="filterObjektTyp" data-label="Objekttyp"></details>
+    <details class="multi" id="filterBundesland" data-label="Bundesland"></details>
+    <details class="multi" id="filterAnbieter" data-label="Anbieter"></details>
     <label class="checkbox"><input type="checkbox" id="hideGone"> Entfernte Inserate ausblenden</label>
   </section>
 

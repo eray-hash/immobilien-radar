@@ -166,6 +166,11 @@ _TYP_FEHLENDE_UNTERLAGEN = {
         "Protokolle der letzten Eigentümerversammlungen",
         "Wirtschaftsplan/Jahresabrechnung",
     ],
+    "einfamilienhaus": [
+        "Baugenehmigung / Bauakte (genehmigter Bestand)",
+        "Grundrisse und Wohnflächenberechnung",
+        "Nachweise zu Modernisierungen (Dach, Heizung, Fenster)",
+    ],
     "mehrfamilienhaus": [
         "Rent Roll / vollständige Mieterliste",
         "Aktuelle Mietverträge",

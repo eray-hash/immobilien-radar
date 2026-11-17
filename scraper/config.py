@@ -21,6 +21,13 @@ SEARCHES = [
         "label": "Mehrfamilienhaus",
         "path": "s-haus-kaufen/renditeobjekt/k0c208",
     },
+    # Einfamilienhäuser - Pfad per Browser/curl verifiziert (gleiches Karten-Layout
+    # wie die Mehrfamilienhaus-Suchen, 27 Treffer/Seite)
+    {
+        "objekt_typ": "einfamilienhaus",
+        "label": "Einfamilienhaus",
+        "path": "s-haus-kaufen/einfamilienhaus/k0c208",
+    },
     # Eigentumswohnungen (Kategorie ist bereits kaufen-only)
     {
         "objekt_typ": "wohnung",
